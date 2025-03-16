@@ -1,0 +1,15 @@
+{
+  "name": "chipa-ta-darwin-universal",
+  "version": "0.0.0",
+  "os": [
+    "darwin"
+  ],
+  "main": "chipa-ta.darwin-universal.node",
+  "files": [
+    "chipa-ta.darwin-universal.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "chipa-ta-freebsd-x64",
+  "version": "0.0.0",
+  "os": [
+    "freebsd"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "chipa-ta.freebsd-x64.node",
+  "files": [
+    "chipa-ta.freebsd-x64.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
+}

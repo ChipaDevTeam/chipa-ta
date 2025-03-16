@@ -1,0 +1,21 @@
+{
+  "name": "chipa-ta-linux-x64-gnu",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "chipa-ta.linux-x64-gnu.node",
+  "files": [
+    "chipa-ta.linux-x64-gnu.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "libc": [
+    "glibc"
+  ]
+}
