@@ -36,8 +36,8 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --release --features napi",
-    "build:debug": "napi build --platform --features napi",
+    "build": "napi build --platform --release --features js",
+    "build:debug": "napi build --platform --features js",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
     "universal": "napi universal",
