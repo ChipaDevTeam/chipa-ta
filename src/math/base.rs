@@ -1,9 +1,8 @@
 use crate::error::{TaError, TaResult};
 
-
 pub fn mean(prices: &[f64]) -> TaResult<f64> {
     if prices.is_empty() {
-        return Err(TaError::EmptyIterator("mean".to_string()))
+        return Err(TaError::EmptyIterator("mean".to_string()));
     };
     let sum: f64 = prices.iter().sum();
     Ok(sum / prices.len() as f64)
@@ -11,7 +10,7 @@ pub fn mean(prices: &[f64]) -> TaResult<f64> {
 
 pub fn median(prices: &[f64]) -> TaResult<f64> {
     if prices.is_empty() {
-        return Err(TaError::EmptyIterator("median".to_string()))
+        return Err(TaError::EmptyIterator("median".to_string()));
     };
 
     let mut ordered_prices = prices
@@ -36,7 +35,6 @@ pub fn cmp_f64(a: &f64, b: &f64) -> Ordering {
         return Ordering::Greater;
     }
     Ordering::Equal
-
 }
 
 // use itertools::Itertools;
@@ -56,19 +54,22 @@ pub fn most_frequent(vector: Vec<i64>) -> f64 {
     if most_frequent.is_empty() {
         0.0
     } else {
-        most_frequent.iter().map(|&(count, _)| count as f64).sum::<f64>() / most_frequent.len() as f64
+        most_frequent
+            .iter()
+            .map(|&(count, _)| count as f64)
+            .sum::<f64>()
+            / most_frequent.len() as f64
     }
 }
 
 pub fn mode(prices: &[f64]) -> TaResult<f64> {
     if prices.is_empty() {
-        return Err(TaError::EmptyIterator("median".to_string()))
+        return Err(TaError::EmptyIterator("median".to_string()));
     };
 
     let rounded_prices = prices.iter().map(|x| x.round() as i64).collect();
     Ok(most_frequent(rounded_prices))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -85,5 +86,4 @@ mod tests {
         let prices = vec![100.2, 100.46, 100.35, 101.08, 101.19];
         assert_eq!(Ok(100.0), mode(&prices));
     }
-
 }

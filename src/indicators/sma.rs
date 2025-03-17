@@ -1,9 +1,13 @@
 use core::fmt;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{error::{TaError, TaResult}, helper_types::Queue, traits::{Candle, Indicator, Next, Period, Reset}, types::Status};
-
+use crate::{
+    error::{TaError, TaResult},
+    helper_types::Queue,
+    traits::{Candle, Indicator, Next, Period, Reset},
+    types::Status,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SimpleMovingAverage {
@@ -41,26 +45,22 @@ impl Next<f64> for SimpleMovingAverage {
             Status::Initial(_) => {
                 let mut queue = Queue::new(self.period)?;
                 queue.next_with(input);
-                (Status::Progress(queue),
-                input)
-            },
-            Status::Progress(mut queue) | Status::Completed(mut queue)=> {
+                (Status::Progress(queue), input)
+            }
+            Status::Progress(mut queue) | Status::Completed(mut queue) => {
                 if queue.next_with(input).is_some() {
                     let res = queue.iter().sum::<f64>() / self.period as f64;
-                    (Status::Completed(queue),
-                    res)
+                    (Status::Completed(queue), res)
                 } else {
-                    let res =queue.iter().sum::<f64>() / queue.len() as f64;
-                    (Status::Progress(queue),
-                    res)
+                    let res = queue.iter().sum::<f64>() / queue.len() as f64;
+                    (Status::Progress(queue), res)
                 }
-            },
-        };      
-        self.status = status;  
+            }
+        };
+        self.status = status;
         Ok(res)
     }
 }
-
 
 impl<T: Candle> Next<&T> for SimpleMovingAverage {
     type Output = f64;

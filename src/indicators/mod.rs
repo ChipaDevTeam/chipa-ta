@@ -1,10 +1,10 @@
-pub mod sma;
-pub mod ema;
-pub mod rsi;
-pub mod macd;
-pub mod tr;
 pub mod atr;
-
+pub mod ema;
+pub mod macd;
+pub mod rsi;
+pub mod sma;
+pub mod super_trend;
+pub mod tr;
 // #[cfg(feature="js")]
 
 use atr::AverageTrueRange;
@@ -13,10 +13,14 @@ use macd::MovingAverageConvergenceDivergence;
 use rsi::RelativeStrengthIndex;
 use serde::{Deserialize, Serialize};
 use sma::SimpleMovingAverage;
+use super_trend::SuperTrend;
 use tr::TrueRange;
 
-use crate::{error::TaResult, traits::{Candle, Indicator, Next, Period, Reset}, types::OutputType};
-
+use crate::{
+    error::TaResult,
+    traits::{Candle, Indicator, Next, Period, Reset},
+    types::OutputType,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -27,7 +31,8 @@ pub enum Indicators {
     Rsi(RelativeStrengthIndex),
     Macd(MovingAverageConvergenceDivergence),
     Tr(TrueRange),
-    Atr(AverageTrueRange)
+    Atr(AverageTrueRange),
+    SuperTrend(SuperTrend),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -55,13 +60,18 @@ impl Next<f64> for Indicators {
             Self::Ema(indicator) => indicator.next(input).map(OutputType::from),
             Self::Sma(indicator) => indicator.next(input).map(OutputType::from),
             Self::Rsi(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Macd(indicator) => indicator.next(input).map(|o| o.to_vec()).map(OutputType::from),
+            Self::Macd(indicator) => indicator
+                .next(input)
+                .map(|o| o.to_vec())
+                .map(OutputType::from),
             Self::Tr(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Atr(indicator) => indicator.next(input).map(OutputType::from)
+            Self::Atr(indicator) => indicator.next(input).map(OutputType::from),
+            Self::SuperTrend(indicator) => indicator
+                .next(input)
+                .map(|o| OutputType::Array(Vec::from(o))),
         }
     }
 }
-
 
 impl<T: Candle> Next<&T> for Indicators {
     type Output = OutputType;
@@ -72,13 +82,18 @@ impl<T: Candle> Next<&T> for Indicators {
             Self::Ema(indicator) => indicator.next(input).map(OutputType::from),
             Self::Sma(indicator) => indicator.next(input).map(OutputType::from),
             Self::Rsi(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Macd(indicator) => indicator.next(input).map(|o| o.to_vec()).map(OutputType::from),
+            Self::Macd(indicator) => indicator
+                .next(input)
+                .map(|o| o.to_vec())
+                .map(OutputType::from),
             Self::Tr(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Atr(indicator) => indicator.next(input).map(OutputType::from)
+            Self::Atr(indicator) => indicator.next(input).map(OutputType::from),
+            Self::SuperTrend(indicator) => indicator
+                .next(input)
+                .map(|o| OutputType::Array(Vec::from(o))),
         }
     }
 }
-
 
 impl Reset for Indicators {
     fn reset(&mut self) {
@@ -90,6 +105,7 @@ impl Reset for Indicators {
             Self::Macd(indicator) => indicator.reset(),
             Self::Tr(indicator) => indicator.reset(),
             Self::Atr(indicator) => indicator.reset(),
+            Self::SuperTrend(indicator) => indicator.reset(),
         }
     }
 }
@@ -103,7 +119,8 @@ impl Period for Indicators {
             Self::Rsi(indicator) => indicator.period(),
             Self::Macd(indicator) => indicator.period(),
             Self::Tr(indicator) => indicator.period(),
-            Self::Atr(indicator) => indicator.period()
+            Self::Atr(indicator) => indicator.period(),
+            Self::SuperTrend(indicator) => indicator.period(),
         }
     }
 }
@@ -146,7 +163,11 @@ impl Indicators {
     }
 
     pub fn macd(fast_period: usize, slow_period: usize, signal_period: usize) -> TaResult<Self> {
-        Ok(Self::Macd(MovingAverageConvergenceDivergence::new(fast_period, slow_period, signal_period)?))
+        Ok(Self::Macd(MovingAverageConvergenceDivergence::new(
+            fast_period,
+            slow_period,
+            signal_period,
+        )?))
     }
 
     pub fn tr() -> Self {
@@ -158,7 +179,7 @@ impl Indicators {
     }
 }
 
-#[cfg(feature="js")]
+#[cfg(feature = "js")]
 pub mod js {
     use super::*;
     use napi::{Env, JsUnknown};
@@ -171,7 +192,7 @@ pub mod js {
         pub low: f64,
         pub open: f64,
         pub close: f64,
-        pub volume: f64
+        pub volume: f64,
     }
 
     impl Candle for CandleJs {
@@ -210,28 +231,29 @@ pub mod js {
                 close: price,
                 high: price,
                 low: price,
-                price
+                price,
             }
         }
     }
 
-
-
     #[napi(js_name = "Indicators")]
     pub struct IndicatorJs {
-        inner: Indicators
+        inner: Indicators,
     }
 
     #[napi]
     impl IndicatorJs {
         #[napi(constructor)]
         pub fn new() -> Self {
-            Self { inner: Indicators::None(NoneIndicator) }
+            Self {
+                inner: Indicators::None(NoneIndicator),
+            }
         }
 
         #[napi(factory)]
         pub fn from_str(json: String) -> napi::Result<Self> {
-            let inner: Indicators = serde_json::from_str(&json).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            let inner: Indicators =
+                serde_json::from_str(&json).map_err(|e| napi::Error::from_reason(e.to_string()))?;
             Ok(Self { inner })
         }
 
@@ -240,12 +262,11 @@ pub mod js {
             let inner = Indicators::ema(period as usize)?;
             Ok(Self { inner })
         }
-    
+
         #[napi(factory)]
         pub fn sma(period: u32) -> napi::Result<Self> {
             let inner = Indicators::sma(period as usize)?;
             Ok(Self { inner })
-
         }
 
         #[napi(factory)]
@@ -253,29 +274,35 @@ pub mod js {
             let inner = Indicators::rsi(period as usize)?;
             Ok(Self { inner })
         }
-    
+
         #[napi(factory)]
         pub fn macd(fast_period: u32, slow_period: u32, signal_period: u32) -> napi::Result<Self> {
-            let inner = Indicators::macd(fast_period as usize, slow_period as usize, signal_period as usize)?;
+            let inner = Indicators::macd(
+                fast_period as usize,
+                slow_period as usize,
+                signal_period as usize,
+            )?;
             Ok(Self { inner })
-
         }
-    
+
         #[napi(factory)]
         pub fn tr() -> Self {
             let inner = Indicators::tr();
             Self { inner }
         }
-    
+
         #[napi(factory)]
         pub fn atr(period: u32) -> Self {
             let inner = Indicators::atr(period as usize);
             Self { inner }
         }
-    
+
         #[napi]
         pub fn next(&mut self, env: Env, input: f64) -> napi::Result<JsUnknown> {
-            let output = self.inner.next(input).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            let output = self
+                .inner
+                .next(input)
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?;
             match output {
                 OutputType::Array(arr) => {
                     let mut js_arr = env.create_array_with_length(arr.len())?;
@@ -283,8 +310,8 @@ pub mod js {
                         js_arr.set_element(i as u32, env.create_double(*val)?)?;
                     }
                     Ok(js_arr.into_unknown())
-                },
-                OutputType::Single(val) => Ok(env.create_double(val)?.into_unknown())
+                }
+                OutputType::Single(val) => Ok(env.create_double(val)?.into_unknown()),
             }
         }
 
@@ -295,7 +322,10 @@ pub mod js {
 
         #[napi]
         pub fn next_candle(&mut self, env: Env, candle: &CandleJs) -> napi::Result<JsUnknown> {
-            let output = self.inner.next(candle).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            let output = self
+                .inner
+                .next(candle)
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?;
             match output {
                 OutputType::Array(arr) => {
                     let mut js_arr = env.create_array_with_length(arr.len())?;
@@ -303,14 +333,21 @@ pub mod js {
                         js_arr.set_element(i as u32, env.create_double(*val)?)?;
                     }
                     Ok(js_arr.into_unknown())
-                },
-                OutputType::Single(val) => Ok(env.create_double(val)?.into_unknown())
+                }
+                OutputType::Single(val) => Ok(env.create_double(val)?.into_unknown()),
             }
         }
 
         #[napi]
-        pub fn next_candles(&mut self, env: Env, candles: Vec<&CandleJs>) -> napi::Result<Vec<JsUnknown>> {
-            candles.into_iter().map(|c| self.next_candle(env, c)).collect()
+        pub fn next_candles(
+            &mut self,
+            env: Env,
+            candles: Vec<&CandleJs>,
+        ) -> napi::Result<Vec<JsUnknown>> {
+            candles
+                .into_iter()
+                .map(|c| self.next_candle(env, c))
+                .collect()
         }
     }
 }
@@ -321,6 +358,7 @@ mod indicators_test {
 
     #[test]
     fn test_serialize() {
+        let super_trend = Indicators::SuperTrend(SuperTrend::new(3.0, 10).unwrap());
         let atr = Indicators::Atr(AverageTrueRange::new(5));
         let tr = Indicators::Tr(TrueRange::new());
         let macd = Indicators::Macd(MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap());
@@ -329,6 +367,7 @@ mod indicators_test {
         let ema = Indicators::Ema(ExponentialMovingAverage::new(9).unwrap());
         let none = Indicators::None(NoneIndicator);
 
+        let super_trend_string = serde_json::to_string(&super_trend).unwrap();
         let atr_string = serde_json::to_string(&atr).unwrap();
         let tr_string = serde_json::to_string(&tr).unwrap();
         let macd_string = serde_json::to_string(&macd).unwrap();
@@ -337,10 +376,20 @@ mod indicators_test {
         let ema_string = serde_json::to_string(&ema).unwrap();
         let none_string = serde_json::to_string(&none).unwrap();
 
+        assert_eq!(
+            super_trend_string,
+            r#"{"type":"SuperTrend","multiplier":3.0,"period":10}"#
+        );
         assert_eq!(atr_string, r#"{"type":"Atr","period":5}"#);
         assert_eq!(tr_string, r#"{"type":"Tr"}"#);
-        assert_eq!(macd_string, r#"{"type":"Macd","fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#);
-        assert_eq!(rsi_string, r#"{"type":"Rsi","period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#);
+        assert_eq!(
+            macd_string,
+            r#"{"type":"Macd","fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#
+        );
+        assert_eq!(
+            rsi_string,
+            r#"{"type":"Rsi","period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#
+        );
         assert_eq!(sma_string, r#"{"type":"Sma","period":9}"#);
         assert_eq!(ema_string, r#"{"type":"Ema","period":9,"k":0.2}"#);
         assert_eq!(none_string, r#"{"type":"None"}"#);
@@ -348,6 +397,7 @@ mod indicators_test {
 
     #[test]
     fn test_deserialize() {
+        let super_trend_string = r#"{"type":"SuperTrend","multiplier":3.0,"period":10}"#;
         let atr_string = r#"{"type":"Atr","period":5}"#;
         let tr_string = r#"{"type":"Tr"}"#;
         let macd_string = r#"{"type":"Macd","fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#;
@@ -356,6 +406,7 @@ mod indicators_test {
         let ema_string = r#"{"type":"Ema","period":9,"k":0.2}"#;
         let none_string = r#"{"type":"None"}"#;
 
+        let super_trend: Indicators = serde_json::from_str(super_trend_string).unwrap();
         let atr: Indicators = serde_json::from_str(atr_string).unwrap();
         let tr: Indicators = serde_json::from_str(tr_string).unwrap();
         let macd: Indicators = serde_json::from_str(macd_string).unwrap();
@@ -364,14 +415,17 @@ mod indicators_test {
         let ema: Indicators = serde_json::from_str(ema_string).unwrap();
         let none: Indicators = serde_json::from_str(none_string).unwrap();
 
+        let super_trend_check = Indicators::SuperTrend(SuperTrend::new(3.0, 10).unwrap());
         let atr_check = Indicators::Atr(AverageTrueRange::new(5));
         let tr_check = Indicators::Tr(TrueRange::new());
-        let macd_check = Indicators::Macd(MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap());
+        let macd_check =
+            Indicators::Macd(MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap());
         let rsi_check = Indicators::Rsi(RelativeStrengthIndex::new(3).unwrap());
         let sma_check = Indicators::Sma(SimpleMovingAverage::new(9).unwrap());
         let ema_check = Indicators::Ema(ExponentialMovingAverage::new(9).unwrap());
         let none_check = Indicators::None(NoneIndicator);
 
+        assert_eq!(super_trend, super_trend_check);
         assert_eq!(atr, atr_check);
         assert_eq!(tr, tr_check);
         assert_eq!(macd, macd_check);
@@ -381,4 +435,3 @@ mod indicators_test {
         assert_eq!(none, none_check);
     }
 }
-

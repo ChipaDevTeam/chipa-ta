@@ -2,7 +2,11 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, helper::max3, traits::{Candle, Indicator, Next, Period, Reset}};
+use crate::{
+    error::TaResult,
+    helper::max3,
+    traits::{Candle, Indicator, Next, Period, Reset},
+};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TrueRange {
@@ -17,7 +21,6 @@ impl TrueRange {
         Self::default()
     }
 }
-
 
 impl fmt::Display for TrueRange {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -143,5 +146,4 @@ mod tests {
         let tr_deserialized: TrueRange = serde_json::from_str(tr_string).unwrap();
         assert_eq!(tr_deserialized, tr_check)
     }
-
 }

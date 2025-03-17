@@ -2,7 +2,11 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{defaults::default_true, error::{TaError, TaResult}, traits::{Candle, Indicator, Next, Period, Reset}};
+use crate::{
+    defaults::default_true,
+    error::{TaError, TaResult},
+    traits::{Candle, Indicator, Next, Period, Reset},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ExponentialMovingAverage {
@@ -143,5 +147,4 @@ mod tests {
         let sma_deserialized: ExponentialMovingAverage = serde_json::from_str(sma_string).unwrap();
         assert_eq!(sma_deserialized, sma_128)
     }
-
 }

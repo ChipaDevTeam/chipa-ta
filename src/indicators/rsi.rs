@@ -2,7 +2,12 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, indicators::ExponentialMovingAverage as Ema, traits::{Candle, Next, Period, Reset}, defaults::default_true};
+use crate::{
+    defaults::default_true,
+    error::TaResult,
+    indicators::ExponentialMovingAverage as Ema,
+    traits::{Candle, Next, Period, Reset},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RelativeStrengthIndex {
@@ -88,7 +93,6 @@ impl fmt::Display for RelativeStrengthIndex {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,15 +138,18 @@ mod tests {
     fn test_serialize() {
         let sma = RelativeStrengthIndex::new(3).unwrap();
         let sma_string = serde_json::to_string(&sma).unwrap();
-        assert_eq!(sma_string, r#"{"period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#)
+        assert_eq!(
+            sma_string,
+            r#"{"period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#
+        )
     }
 
     #[test]
     fn test_deserialize() {
-        let sma_string = r#"{"period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#;
+        let sma_string =
+            r#"{"period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#;
         let sma_128 = RelativeStrengthIndex::new(3).unwrap();
         let sma_deserialized: RelativeStrengthIndex = serde_json::from_str(sma_string).unwrap();
         assert_eq!(sma_deserialized, sma_128)
     }
-
 }

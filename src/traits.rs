@@ -1,7 +1,6 @@
 use crate::error::TaResult;
 use core::{f64, fmt::Debug};
 
-
 pub trait Candle: Clone {
     fn open(&self) -> f64 {
         self.price()
@@ -28,15 +27,14 @@ pub trait Candle: Clone {
 
 pub trait Indicator: Clone + Debug + Reset + Default + PartialEq + Period {}
 
-
 pub trait Next<T> {
     type Output;
 
     fn next(&mut self, input: T) -> TaResult<Self::Output>;
 
-    fn next_batched<A>(&mut self, input : A) -> TaResult<Vec<Self::Output>>
-    where 
-        A: Iterator<Item = T>
+    fn next_batched<A>(&mut self, input: A) -> TaResult<Vec<Self::Output>>
+    where
+        A: Iterator<Item = T>,
     {
         input.map(|e| self.next(e)).collect()
     }

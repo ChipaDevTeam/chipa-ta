@@ -2,7 +2,11 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, indicators::ema::ExponentialMovingAverage as Ema, traits::{Candle, Indicator, Next, Period, Reset}};
+use crate::{
+    error::TaResult,
+    indicators::ema::ExponentialMovingAverage as Ema,
+    traits::{Candle, Indicator, Next, Period, Reset},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct MovingAverageConvergenceDivergence {
@@ -107,7 +111,6 @@ mod tests {
     use super::*;
     type Macd = MovingAverageConvergenceDivergence;
 
-
     fn round(nums: (f64, f64, f64)) -> (f64, f64, f64) {
         let n0 = (nums.0 * 100.0).round() / 100.0;
         let n1 = (nums.1 * 100.0).round() / 100.0;
@@ -163,15 +166,18 @@ mod tests {
     fn test_serialize() {
         let macd = MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap();
         let macd_string = serde_json::to_string(&macd).unwrap();
-        assert_eq!(macd_string, r#"{"fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#)
+        assert_eq!(
+            macd_string,
+            r#"{"fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#
+        )
     }
 
     #[test]
     fn test_deserialize() {
         let macd_string = r#"{"fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#;
         let macd_check = MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap();
-        let macd_deserialized: MovingAverageConvergenceDivergence = serde_json::from_str(macd_string).unwrap();
+        let macd_deserialized: MovingAverageConvergenceDivergence =
+            serde_json::from_str(macd_string).unwrap();
         assert_eq!(macd_deserialized, macd_check)
     }
-
 }

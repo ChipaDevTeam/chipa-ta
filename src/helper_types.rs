@@ -22,9 +22,9 @@ impl Bar {
         }
     }
 
-    pub fn set_open<T: Into<f64>>(mut self, val :T ) -> Self {
-       self.open = val.into();
-       self
+    pub fn set_open<T: Into<f64>>(mut self, val: T) -> Self {
+        self.open = val.into();
+        self
     }
 
     pub fn set_high<T: Into<f64>>(mut self, val: T) -> Self {
@@ -79,11 +79,17 @@ impl Candle for Bar {
     }
 }
 
-use std::{collections::VecDeque, ops::{Deref, DerefMut}};
+use std::{
+    collections::VecDeque,
+    ops::{Deref, DerefMut},
+};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, traits::{Period, Reset}};
+use crate::{
+    error::TaResult,
+    traits::{Period, Reset},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Cycle {
@@ -94,7 +100,7 @@ pub struct Cycle {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Queue<T> {
     queue: VecDeque<T>,
-    period: usize
+    period: usize,
 }
 
 impl Period for Cycle {
@@ -152,7 +158,10 @@ impl<T> Queue<T> {
         if capacity == 0 {
             return Err(crate::error::TaError::InvalidParameter("0".to_string()));
         }
-        Ok(Self { period: capacity, queue: VecDeque::with_capacity(capacity) })
+        Ok(Self {
+            period: capacity,
+            queue: VecDeque::with_capacity(capacity),
+        })
     }
 
     #[inline]
@@ -160,7 +169,7 @@ impl<T> Queue<T> {
         self.queue.push_back(value);
         if self.queue.len() > self.period {
             return self.queue.pop_front();
-        }    
+        }
         None
     }
 }
@@ -178,7 +187,6 @@ impl<T> DerefMut for Queue<T> {
         &mut self.queue
     }
 }
-
 
 #[cfg(test)]
 mod tests {
