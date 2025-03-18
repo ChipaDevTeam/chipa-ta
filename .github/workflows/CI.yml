@@ -165,8 +165,10 @@ jobs:
           environment_variables: DEBUG RUSTUP_IO_THREADS
           shell: bash
           run: |
-            sudo pkg install -y -f curl node libnghttp2 npm
-            sudo npm install -g yarn --ignore-scripts
+            sudo pkg update
+            sudo pkg upgrade -y
+            # Install specific Node.js LTS version
+            sudo pkg install -y -f curl node18 npm-node18 libnghttp2
             curl https://sh.rustup.rs -sSf --output rustup.sh
             sh rustup.sh -y --profile minimal --default-toolchain stable
             source "$HOME/.cargo/env"
@@ -174,6 +176,10 @@ jobs:
             rustc --version
             echo "~~~~ node -v ~~~~"
             node -v
+            echo "~~~~ npm --version ~~~~"
+            npm --version
+            # Install yarn through npm
+            sudo npm install -g yarn@1.22.19 --ignore-scripts
             echo "~~~~ yarn --version ~~~~"
             yarn --version
             pwd
@@ -482,3 +488,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+

@@ -168,13 +168,13 @@ mod tests {
         let macd_string = serde_json::to_string(&macd).unwrap();
         assert_eq!(
             macd_string,
-            r#"{"fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#
+            r#"{"fast_ema":{"period":3},"slow_ema":{"period":4},"signal_ema":{"period":7}}"#
         )
     }
 
     #[test]
     fn test_deserialize() {
-        let macd_string = r#"{"fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#;
+        let macd_string = r#"{"fast_ema":{"period":3},"slow_ema":{"period":4},"signal_ema":{"period":7}}"#;
         let macd_check = MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap();
         let macd_deserialized: MovingAverageConvergenceDivergence =
             serde_json::from_str(macd_string).unwrap();

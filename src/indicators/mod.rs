@@ -177,6 +177,10 @@ impl Indicators {
     pub fn atr(period: usize) -> Self {
         Self::Atr(AverageTrueRange::new(period))
     }
+
+    pub fn super_trend(multiplier: f64, period: usize) -> TaResult<Self> {
+        Ok(Self::SuperTrend(SuperTrend::new(multiplier, period)?))
+    }
 }
 
 #[cfg(feature = "js")]
@@ -241,19 +245,41 @@ pub mod js {
         inner: Indicators,
     }
 
-    #[napi]
-    impl IndicatorJs {
-        #[napi(constructor)]
-        pub fn new() -> Self {
+    impl Serialize for IndicatorJs {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer {
+            self.inner.serialize(serializer)
+        }
+    }
+
+    impl<'de> Deserialize<'de> for IndicatorJs {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de> {
+            let inner = Indicators::deserialize(deserializer)?;
+            Ok(Self { inner })
+        }
+    }
+
+    impl Default for IndicatorJs {
+        fn default() -> Self {
             Self {
                 inner: Indicators::None(NoneIndicator),
             }
         }
+    }
+
+    #[napi]
+    impl IndicatorJs {
+        #[napi(constructor)]
+        pub fn new() -> Self {
+            Self::default()
+        }
 
         #[napi(factory)]
-        pub fn from_str(json: String) -> napi::Result<Self> {
-            let inner: Indicators =
-                serde_json::from_str(&json).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        pub fn from_string(json: JsUnknown, env: Env) -> napi::Result<Self> {
+            let inner: Indicators = env.from_js_value(json)?;
             Ok(Self { inner })
         }
 
@@ -295,6 +321,17 @@ pub mod js {
         pub fn atr(period: u32) -> Self {
             let inner = Indicators::atr(period as usize);
             Self { inner }
+        }
+
+        #[napi(factory)]
+        pub fn super_trend(multiplier: f64, period: u32) -> napi::Result<Self> {
+            let inner = Indicators::super_trend(multiplier, period as usize)?;
+            Ok(Self { inner })
+        }
+
+        #[napi]
+        pub fn to_json(&self, env: Env) -> napi::Result<JsUnknown> {
+            env.to_js_value(&self)
         }
 
         #[napi]
@@ -384,14 +421,14 @@ mod indicators_test {
         assert_eq!(tr_string, r#"{"type":"Tr"}"#);
         assert_eq!(
             macd_string,
-            r#"{"type":"Macd","fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#
+            r#"{"type":"Macd","fast_ema":{"period":3},"slow_ema":{"period":4},"signal_ema":{"period":7}}"#
         );
         assert_eq!(
             rsi_string,
-            r#"{"type":"Rsi","period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#
+            r#"{"type":"Rsi","period":3}"#
         );
         assert_eq!(sma_string, r#"{"type":"Sma","period":9}"#);
-        assert_eq!(ema_string, r#"{"type":"Ema","period":9,"k":0.2}"#);
+        assert_eq!(ema_string, r#"{"type":"Ema","period":9}"#);
         assert_eq!(none_string, r#"{"type":"None"}"#);
     }
 
@@ -400,10 +437,10 @@ mod indicators_test {
         let super_trend_string = r#"{"type":"SuperTrend","multiplier":3.0,"period":10}"#;
         let atr_string = r#"{"type":"Atr","period":5}"#;
         let tr_string = r#"{"type":"Tr"}"#;
-        let macd_string = r#"{"type":"Macd","fast_ema":{"period":3,"k":0.5},"slow_ema":{"period":4,"k":0.4},"signal_ema":{"period":7,"k":0.25}}"#;
-        let rsi_string = r#"{"type":"Rsi","period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#;
+        let macd_string = r#"{"type":"Macd","fast_ema":{"period":3},"slow_ema":{"period":4},"signal_ema":{"period":7}}"#;
+        let rsi_string = r#"{"type":"Rsi","period":3}"#;
         let sma_string = r#"{"type":"Sma","period":9}"#;
-        let ema_string = r#"{"type":"Ema","period":9,"k":0.2}"#;
+        let ema_string = r#"{"type":"Ema","period":9}"#;
         let none_string = r#"{"type":"None"}"#;
 
         let super_trend: Indicators = serde_json::from_str(super_trend_string).unwrap();

@@ -13,7 +13,7 @@ js = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:serde_json"]
 
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "2.12.2", default-features = false, features = ["napi4"], optional = true }
+napi = { version = "2.12.2", default-features = false, features = ["napi4", "serde-json"], optional = true }
 napi-derive = { version = "2.12.2", optional  = true }
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = { version = "1.0.139", optional  = true }

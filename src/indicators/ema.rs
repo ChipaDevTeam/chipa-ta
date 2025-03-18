@@ -3,20 +3,52 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    defaults::default_true,
     error::{TaError, TaResult},
     traits::{Candle, Indicator, Next, Period, Reset},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize)]
+struct EmaSerializer {
+    period: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExponentialMovingAverage {
     period: usize,
     k: f64,
-    #[serde(skip)]
     current: f64,
-    #[serde(skip)]
-    #[serde(default = "default_true")]
     is_new: bool,
+}
+
+impl Serialize for ExponentialMovingAverage {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Only serialize the period
+        EmaSerializer {
+            period: self.period,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ExponentialMovingAverage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Deserialize into the temporary struct
+        let serializer = EmaSerializer::deserialize(deserializer)?;
+        
+        // Create a new ExponentialMovingAverage with the period
+        Ok(ExponentialMovingAverage {
+            period: serializer.period,
+            k: 2.0 / (serializer.period + 1) as f64,
+            current: 0.0,
+            is_new: true,
+        })
+    }
 }
 
 impl Indicator for ExponentialMovingAverage {}
@@ -137,12 +169,12 @@ mod tests {
     fn test_serialize() {
         let sma = ExponentialMovingAverage::new(3).unwrap();
         let sma_string = serde_json::to_string(&sma).unwrap();
-        assert_eq!(sma_string, r#"{"period":3,"k":0.5}"#)
+        assert_eq!(sma_string, r#"{"period":3}"#)
     }
 
     #[test]
     fn test_deserialize() {
-        let sma_string = r#"{"period":3,"k":0.5}"#;
+        let sma_string = r#"{"period":3}"#;
         let sma_128 = ExponentialMovingAverage::new(3).unwrap();
         let sma_deserialized: ExponentialMovingAverage = serde_json::from_str(sma_string).unwrap();
         assert_eq!(sma_deserialized, sma_128)

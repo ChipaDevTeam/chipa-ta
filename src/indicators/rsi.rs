@@ -3,23 +3,73 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    defaults::default_true,
     error::TaResult,
     indicators::ExponentialMovingAverage as Ema,
     traits::{Candle, Next, Period, Reset},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize)]
+struct RsiSerializer {
+    period: usize,
+    #[serde(skip_serializing_if="Option::is_none")]
+    up_ema: Option<Ema>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    down_ema: Option<Ema>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct RelativeStrengthIndex {
     period: usize,
     up_ema: Ema,
     down_ema: Ema,
-    #[serde(skip)]
     prev_val: f64,
-    #[serde(skip)]
-    #[serde(default = "default_true")]
     is_new: bool,
 }
+
+impl Serialize for RelativeStrengthIndex {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Only serialize the period
+        match self.period == self.up_ema.period() && self.period == self.down_ema.period() {
+            true => RsiSerializer {
+                period: self.period,
+                down_ema: None,
+                up_ema: None
+            }
+            .serialize(serializer),
+            false => RsiSerializer {
+                period: self.period,
+                down_ema: Some(self.down_ema.clone()),
+                up_ema: Some(self.up_ema.clone())
+            }
+            .serialize(serializer)
+        }
+        
+        
+    }
+}
+
+impl<'de> Deserialize<'de> for RelativeStrengthIndex {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Deserialize into the temporary struct
+        let serializer = RsiSerializer::deserialize(deserializer)?;
+        
+        // Create a new RelativeStrengthIndex with the period
+        Ok(RelativeStrengthIndex {
+            period: serializer.period,
+            up_ema: Ema::new(serializer.period).map_err(serde::de::Error::custom)?,
+            down_ema: Ema::new(serializer.period).map_err(serde::de::Error::custom)?,
+            prev_val: 0.0,
+            is_new: true,
+        })
+    }
+}
+
 
 impl RelativeStrengthIndex {
     pub fn new(period: usize) -> TaResult<Self> {
@@ -140,14 +190,14 @@ mod tests {
         let sma_string = serde_json::to_string(&sma).unwrap();
         assert_eq!(
             sma_string,
-            r#"{"period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#
+            r#"{"period":3}"#
         )
     }
 
     #[test]
     fn test_deserialize() {
         let sma_string =
-            r#"{"period":3,"up_ema":{"period":3,"k":0.5},"down_ema":{"period":3,"k":0.5}}"#;
+            r#"{"period":3}"#;
         let sma_128 = RelativeStrengthIndex::new(3).unwrap();
         let sma_deserialized: RelativeStrengthIndex = serde_json::from_str(sma_string).unwrap();
         assert_eq!(sma_deserialized, sma_128)
