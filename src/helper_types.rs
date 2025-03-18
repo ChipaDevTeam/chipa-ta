@@ -10,8 +10,8 @@ pub struct Bar {
     volume: f64,
 }
 
-impl Bar {
-    pub fn new() -> Self {
+impl Default for Bar {
+    fn default() -> Self {
         Self {
             open: 0.0,
             close: 0.0,
@@ -20,6 +20,12 @@ impl Bar {
             price: 0.0,
             volume: 0.0,
         }
+    }
+}
+
+impl Bar {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn set_open<T: Into<f64>>(mut self, val: T) -> Self {

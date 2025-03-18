@@ -43,5 +43,7 @@
     "universal": "napi universal",
     "version": "napi version"
   },
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "repository": "https://github.com/ChipaDevTeam/chipa-ta",
+  "description": "A simple technical analysis library made on rust for rust and js"
 }

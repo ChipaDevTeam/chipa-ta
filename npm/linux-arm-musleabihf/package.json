@@ -1,5 +1,5 @@
 {
-  "name": "chipa-ta-linux-arm-musleabihf",
+  "name": "@rick-29/chipa-ta-linux-arm-musleabihf",
   "version": "0.0.0",
   "os": [
     "linux"
@@ -11,8 +11,10 @@
   "files": [
     "chipa-ta.linux-arm-musleabihf.node"
   ],
+  "description": "A simple technical analysis library made on rust for rust and js",
   "license": "MIT",
   "engines": {
     "node": ">= 10"
-  }
+  },
+  "repository": "https://github.com/ChipaDevTeam/chipa-ta"
 }

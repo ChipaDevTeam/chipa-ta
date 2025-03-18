@@ -1,5 +1,5 @@
 {
-  "name": "chipa-ta-linux-arm64-musl",
+  "name": "@rick-29/chipa-ta-linux-arm64-musl",
   "version": "0.0.0",
   "os": [
     "linux"
@@ -11,10 +11,12 @@
   "files": [
     "chipa-ta.linux-arm64-musl.node"
   ],
+  "description": "A simple technical analysis library made on rust for rust and js",
   "license": "MIT",
   "engines": {
     "node": ">= 10"
   },
+  "repository": "https://github.com/ChipaDevTeam/chipa-ta",
   "libc": [
     "musl"
   ]

@@ -1,3 +1,3 @@
-# `chipa-ta-darwin-universal`
+# `@rick-29/chipa-ta-darwin-universal`
 
-This is the **universal-apple-darwin** binary for `chipa-ta`
+This is the **universal-apple-darwin** binary for `@rick-29/chipa-ta`

@@ -127,11 +127,9 @@ mod tests {
     #[test]
     fn test_atr_initial_calculation() -> TaResult<()> {
         let mut atr = AverageTrueRange::new(3);
-        let candles = vec![
-            Bar::new().set_close(0.0),
+        let candles = [Bar::new().set_close(0.0),
             Bar::new().set_close(1.0),
-            Bar::new().set_close(3.0),
-        ];
+            Bar::new().set_close(3.0)];
 
         let atr1 = atr.next(&candles[0])?;
         let atr2 = atr.next(&candles[1])?;
