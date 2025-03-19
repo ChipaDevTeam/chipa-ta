@@ -4,17 +4,24 @@ name = "chipa-ta"
 version = "0.0.1"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "stubgen"
+path = "src/stubgen.rs"
+
 
 [features]
-# default = ["js"]
+# default = ["js", "py"]
 js = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:serde_json"]
-
+py = ["dep:pyo3-stub-gen", "dep:pyo3", "dep:serde_json"]
 
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { version = "2.12.2", default-features = false, features = ["napi4", "serde-json"], optional = true }
 napi-derive = { version = "2.12.2", optional  = true }
+pyo3 = {version = "0.24.0", optional  = true }
+pyo3-stub-gen = { version = "0.7.0", optional = true }
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = { version = "1.0.139", optional  = true }
 thiserror = "2.0.11"

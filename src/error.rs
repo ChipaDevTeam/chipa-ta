@@ -1,3 +1,4 @@
+
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -18,5 +19,12 @@ pub type TaResult<T> = Result<T, TaError>;
 impl From<TaError> for napi::Error {
     fn from(value: TaError) -> Self {
         Self::from_reason(value.to_string())
+    }
+}
+
+#[cfg(feature="py")]
+impl From<TaError> for pyo3::PyErr {
+    fn from(value: TaError) -> Self {
+        pyo3::exceptions::PyException::new_err(value.to_string())
     }
 }
