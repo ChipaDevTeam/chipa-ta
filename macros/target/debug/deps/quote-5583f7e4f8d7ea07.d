@@ -1,0 +1,11 @@
+C:\Users\ayfmp\OneDrive\Projects\chipa-ta\macros\target\debug\deps\libquote-5583f7e4f8d7ea07.rmeta: C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\lib.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\ext.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\format.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\ident_fragment.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\to_tokens.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\runtime.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\spanned.rs
+
+C:\Users\ayfmp\OneDrive\Projects\chipa-ta\macros\target\debug\deps\quote-5583f7e4f8d7ea07.d: C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\lib.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\ext.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\format.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\ident_fragment.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\to_tokens.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\runtime.rs C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\spanned.rs
+
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\lib.rs:
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\ext.rs:
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\format.rs:
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\ident_fragment.rs:
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\to_tokens.rs:
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\runtime.rs:
+C:\Users\ayfmp\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\quote-1.0.40\src\spanned.rs:

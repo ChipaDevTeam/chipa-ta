@@ -4,11 +4,12 @@ use crate::error::TaResult;
 use crate::indicators::AverageTrueRange as Atr;
 use crate::traits::{Candle, Indicator, Next, Period, Reset};
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+//  TODO: Fix SuperTrend implementation to use the correct calculations
+//  SuperTrend is a trend-following indicator that uses the Average True Range (ATR) to determine the trend direction.
+//  It consists of two bands: an upper band and a lower band, which are calculated based on the ATR and a multiplier.
+#[derive(Debug, Clone, PartialEq)]
 pub struct SuperTrend {
     multiplier: f64,
-    period: usize,
-    #[serde(skip)]
     atr: Atr,
 }
 
@@ -36,16 +37,15 @@ impl Indicator for SuperTrend {}
 
 impl Period for SuperTrend {
     fn period(&self) -> usize {
-        self.period
+        self.atr.period()
     }
 }
 
 impl Default for SuperTrend {
     fn default() -> Self {
         Self {
-            multiplier: 3.0,
-            period: 10,
-            atr: Atr::new(10),
+            multiplier: 3.0,            
+            atr: Atr::new(10).unwrap(),
         }
     }
 }
@@ -54,8 +54,7 @@ impl SuperTrend {
     pub fn new(multiplier: f64, period: usize) -> TaResult<Self> {
         Ok(Self {
             multiplier,
-            period,
-            atr: Atr::new(period),
+            atr: Atr::new(period)?,
         })
     }
 }
@@ -89,6 +88,26 @@ impl<T: Candle> Next<&T> for SuperTrend {
     }
 }
 
+impl Serialize for SuperTrend {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        #[derive(Serialize)]
+        struct SuperTrendDef {
+            multiplier: f64,
+            period: usize,
+        }
+
+        // Serialize the multiplier and period
+        SuperTrendDef {
+            multiplier: self.multiplier,
+            period: self.period(),
+        }
+        .serialize(serializer)
+    }
+}
+
 impl<'de> Deserialize<'de> for SuperTrend {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -111,8 +130,7 @@ impl<'de> Deserialize<'de> for SuperTrend {
         // Create and return the SuperTrend with ATRs initialized based on period
         Ok(SuperTrend {
             multiplier,
-            period,
-            atr: Atr::new(period),
+            atr: Atr::new(period).map_err(serde::de::Error::custom)?,
         })
     }
 }

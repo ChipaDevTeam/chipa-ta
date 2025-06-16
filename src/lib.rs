@@ -12,13 +12,17 @@ pub use indicators::Indicator;
 #[cfg(feature = "js")]
 pub use indicators::js::{CandleJs, IndicatorJs};
 
-#[cfg(feature="py")]
+#[cfg(feature = "py")]
 mod py {
-    use pyo3::{pymodule, types::{PyModule, PyModuleMethods}, Bound, PyResult};
+    use pyo3::{
+        pymodule,
+        types::{PyModule, PyModuleMethods},
+        Bound, PyResult,
+    };
     use pyo3_stub_gen::define_stub_info_gatherer;
 
     use crate::indicators::py::{Candle, Indicator};
-    
+
     #[pymodule]
     #[pyo3(name = "chipa_ta")]
     fn chipa_ta(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -31,5 +35,5 @@ mod py {
     define_stub_info_gatherer!(stub_info);
 }
 
-#[cfg(feature="py")]
+#[cfg(feature = "py")]
 pub use py::*;

@@ -40,7 +40,7 @@ impl<'de> Deserialize<'de> for ExponentialMovingAverage {
     {
         // Deserialize into the temporary struct
         let serializer = EmaSerializer::deserialize(deserializer)?;
-        
+
         // Create a new ExponentialMovingAverage with the period
         Ok(ExponentialMovingAverage {
             period: serializer.period,

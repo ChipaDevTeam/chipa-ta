@@ -11,9 +11,9 @@ use crate::{
 #[derive(Serialize, Deserialize)]
 struct RsiSerializer {
     period: usize,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     up_ema: Option<Ema>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     down_ema: Option<Ema>,
 }
 
@@ -36,18 +36,16 @@ impl Serialize for RelativeStrengthIndex {
             true => RsiSerializer {
                 period: self.period,
                 down_ema: None,
-                up_ema: None
+                up_ema: None,
             }
             .serialize(serializer),
             false => RsiSerializer {
                 period: self.period,
                 down_ema: Some(self.down_ema.clone()),
-                up_ema: Some(self.up_ema.clone())
+                up_ema: Some(self.up_ema.clone()),
             }
-            .serialize(serializer)
+            .serialize(serializer),
         }
-        
-        
     }
 }
 
@@ -58,7 +56,7 @@ impl<'de> Deserialize<'de> for RelativeStrengthIndex {
     {
         // Deserialize into the temporary struct
         let serializer = RsiSerializer::deserialize(deserializer)?;
-        
+
         // Create a new RelativeStrengthIndex with the period
         Ok(RelativeStrengthIndex {
             period: serializer.period,
@@ -69,7 +67,6 @@ impl<'de> Deserialize<'de> for RelativeStrengthIndex {
         })
     }
 }
-
 
 impl RelativeStrengthIndex {
     pub fn new(period: usize) -> TaResult<Self> {
@@ -188,16 +185,12 @@ mod tests {
     fn test_serialize() {
         let sma = RelativeStrengthIndex::new(3).unwrap();
         let sma_string = serde_json::to_string(&sma).unwrap();
-        assert_eq!(
-            sma_string,
-            r#"{"period":3}"#
-        )
+        assert_eq!(sma_string, r#"{"period":3}"#)
     }
 
     #[test]
     fn test_deserialize() {
-        let sma_string =
-            r#"{"period":3}"#;
+        let sma_string = r#"{"period":3}"#;
         let sma_128 = RelativeStrengthIndex::new(3).unwrap();
         let sma_deserialized: RelativeStrengthIndex = serde_json::from_str(sma_string).unwrap();
         assert_eq!(sma_deserialized, sma_128)

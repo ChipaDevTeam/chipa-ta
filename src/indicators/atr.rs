@@ -3,7 +3,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::TaResult,
+    error::{TaError, TaResult},
     helper_types::Queue,
     traits::{Candle, Indicator, Next, Period, Reset},
     types::Status,
@@ -25,19 +25,24 @@ pub struct AverageTrueRange {
 impl Indicator for AverageTrueRange {}
 
 impl AverageTrueRange {
-    pub fn new(period: usize) -> Self {
-        Self {
+    pub fn new(period: usize) -> TaResult<Self> {
+        if period == 0 {
+            return Err(TaError::InvalidParameter(
+                "Period must be greater than 0".to_string(),
+            ));
+        }
+        Ok(Self {
             period,
             true_range: TrueRange::new(),
             atr: None,
             status: Status::Initial(()),
-        }
+        })
     }
 }
 
 impl Default for AverageTrueRange {
     fn default() -> Self {
-        Self::new(14) // Default period is 14
+        Self::new(14).unwrap() // Default period is 14
     }
 }
 
@@ -126,10 +131,12 @@ mod tests {
 
     #[test]
     fn test_atr_initial_calculation() -> TaResult<()> {
-        let mut atr = AverageTrueRange::new(3);
-        let candles = [Bar::new().set_close(0.0),
+        let mut atr = AverageTrueRange::new(3)?;
+        let candles = [
+            Bar::new().set_close(0.0),
             Bar::new().set_close(1.0),
-            Bar::new().set_close(3.0)];
+            Bar::new().set_close(3.0),
+        ];
 
         let atr1 = atr.next(&candles[0])?;
         let atr2 = atr.next(&candles[1])?;

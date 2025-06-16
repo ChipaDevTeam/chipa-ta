@@ -8,11 +8,53 @@ use crate::{
     traits::{Candle, Indicator, Next, Period, Reset},
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MovingAverageConvergenceDivergence {
     fast_ema: Ema,
     slow_ema: Ema,
     signal_ema: Ema,
+}
+
+/// Creating custom Serialize and deserialize implementations for MovingAverageConvergenceDivergence
+impl Serialize for MovingAverageConvergenceDivergence {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        #[derive(Serialize)]
+        struct MovingAverageConvergenceDivergenceVisitor {
+            fast_ema: usize,
+            slow_ema: usize,
+            signal_ema: usize,
+        }
+        let visitor = MovingAverageConvergenceDivergenceVisitor {
+            fast_ema: self.fast_ema.period(),
+            slow_ema: self.slow_ema.period(),
+            signal_ema: self.signal_ema.period(),
+        };
+        visitor.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for MovingAverageConvergenceDivergence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct MovingAverageConvergenceDivergenceVisitor {
+            fast_ema: usize,
+            slow_ema: usize,
+            signal_ema: usize,
+        }
+        let visitor = MovingAverageConvergenceDivergenceVisitor::deserialize(deserializer)?;
+        MovingAverageConvergenceDivergence::new(
+            visitor.fast_ema,
+            visitor.slow_ema,
+            visitor.signal_ema,
+        )
+        .map_err(serde::de::Error::custom)
+    }
 }
 
 impl MovingAverageConvergenceDivergence {
@@ -166,15 +208,12 @@ mod tests {
     fn test_serialize() {
         let macd = MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap();
         let macd_string = serde_json::to_string(&macd).unwrap();
-        assert_eq!(
-            macd_string,
-            r#"{"fast_ema":{"period":3},"slow_ema":{"period":4},"signal_ema":{"period":7}}"#
-        )
+        assert_eq!(macd_string, r#"{"fast_ema":3,"slow_ema":4,"signal_ema":7}"#)
     }
 
     #[test]
     fn test_deserialize() {
-        let macd_string = r#"{"fast_ema":{"period":3},"slow_ema":{"period":4},"signal_ema":{"period":7}}"#;
+        let macd_string = r#"{"fast_ema":3,"slow_ema":4,"signal_ema":7}"#;
         let macd_check = MovingAverageConvergenceDivergence::new(3, 4, 7).unwrap();
         let macd_deserialized: MovingAverageConvergenceDivergence =
             serde_json::from_str(macd_string).unwrap();

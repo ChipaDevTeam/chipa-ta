@@ -103,6 +103,7 @@ pub struct Cycle {
     index: usize,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Queue<T> {
     queue: VecDeque<T>,
