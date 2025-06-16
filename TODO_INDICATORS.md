@@ -17,7 +17,7 @@
   - Momentum indicator using 5 and 34-period moving averages
   - Histogram showing momentum changes
 
-- [ ] **Williams %R**
+- [X] **Williams %R**
 
   - Momentum oscillator (0 to -100 range)
   - Measures overbought/oversold conditions
