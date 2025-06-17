@@ -1,7 +1,7 @@
-use crate::error::TaResult;
+use crate::{error::TaResult, helper_types::Bar};
 use core::{f64, fmt::Debug};
 
-pub trait Candle: Clone {
+pub trait Candle: Clone + Debug + Sized {
     fn open(&self) -> f64 {
         self.price()
     }
@@ -10,7 +10,7 @@ pub trait Candle: Clone {
         self.price()
     }
 
-    fn high(&self) -> f64 {
+    fn high(&self) -> f64 { 
         self.price()
     }
 
@@ -22,6 +22,16 @@ pub trait Candle: Clone {
 
     fn volume(&self) -> f64 {
         f64::NAN
+    }
+
+    fn to_bar(&self) -> Bar {
+        Bar::new()
+            .set_open(self.open())
+            .set_high(self.high())
+            .set_low(self.low())
+            .set_close(self.close())
+            .set_price(self.price())
+            .set_volume(self.volume())
     }
 }
 

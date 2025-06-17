@@ -160,6 +160,12 @@ mod tests {
     }
 
     #[test]
+    fn test_rsi_single() {
+        let mut rsi = RelativeStrengthIndex::new(14).unwrap();
+        dbg!(rsi.next(100.0).unwrap());
+    }
+
+    #[test]
     fn test_reset() {
         let mut rsi = RelativeStrengthIndex::new(3).unwrap();
         assert_eq!(rsi.next(10.0).unwrap(), 50.0);

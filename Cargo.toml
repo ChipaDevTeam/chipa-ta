@@ -12,7 +12,7 @@ path = "src/stubgen.rs"
 
 
 [features]
-default = ["py", "js"]
+default = ["py"]
 js = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:serde_json"]
 py = ["dep:pyo3-stub-gen", "dep:pyo3", "dep:serde_json"]
 

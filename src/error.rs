@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::types::OutputTypeCmpError;
+
 #[derive(Error, Debug, PartialEq)]
 pub enum TaError {
     #[error("InvalidParameter '{0}' found")]
@@ -10,6 +12,11 @@ pub enum TaError {
     IncorrectOutputType { expected: String, actual: String },
     #[error("Unexpected error, {0}")]
     Unexpected(String),
+    #[error("Cmp error, {0}")]
+    Cmp(#[from] OutputTypeCmpError),
+    /// Error originating from the strategy module.
+    #[error("Strategy error: {0}")]
+    Strategy(#[from] crate::strategy::StrategyError),
 }
 
 pub type TaResult<T> = Result<T, TaError>;

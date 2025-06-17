@@ -57,7 +57,12 @@ impl Bar {
         self.volume = val;
         self
     }
+
+    pub fn typical_price(&self) -> f64 {
+        (self.high + self.low + self.close) / 3.0
+    }
 }
+
 
 impl Candle for Bar {
     fn close(&self) -> f64 {

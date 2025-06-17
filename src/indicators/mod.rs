@@ -49,7 +49,7 @@ pub mod js {
     /// * `close` - Closing price of the period
     /// * `volume` - Trading volume during the period
     #[napi(js_name = "Candle")]
-    #[derive(Clone, Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize, Debug)]
     pub struct CandleJs {
         pub price: f64,
         pub high: f64,
@@ -523,7 +523,7 @@ pub mod py {
 
     #[gen_stub_pyclass]
     #[pyclass]
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub struct Candle {
         pub price: f64,
         pub high: f64,
