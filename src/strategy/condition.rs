@@ -20,6 +20,37 @@ pub enum Condition {
         indicator: Indicator,
         value: OutputType,
     },
+    /// Checks if an indicator value equals a threshold.
+    Equals {
+        indicator: Indicator,
+        value: OutputType,
+    },
+    /// Checks if an indicator value is greater than or equal to a threshold.
+    GreaterThanOrEqual {
+        indicator: Indicator,
+        value: OutputType,
+    },
+    /// Checks if an indicator value is less than or equal to a threshold.
+    LessThanOrEqual {
+        indicator: Indicator,
+        value: OutputType,
+    },
+    /// Detects when an indicator crosses above a threshold
+    /// (previous <= threshold && current > threshold)
+    CrossOver {
+        indicator: Indicator,
+        value: OutputType,
+        #[serde(skip)]
+        prev_value: Option<OutputType>,
+    },
+    /// Detects when an indicator crosses below a threshold
+    /// (previous >= threshold && current < threshold)
+    CrossUnder {
+        indicator: Indicator,
+        value: OutputType,
+        #[serde(skip)]
+        prev_value: Option<OutputType>,
+    },
     /// Logical AND of multiple conditions.
     And(Vec<Condition>),
     /// Logical OR of multiple conditions.
@@ -37,6 +68,47 @@ impl Condition {
             }
             Condition::LessThan { indicator, value } => {
                 indicator.next(data)?.cmp_output(value, |x, y| x < y)
+            }
+            Condition::Equals { indicator, value } => {
+                indicator.next(data)?.cmp_output(value, |x, y| x == y)
+            }
+            Condition::GreaterThanOrEqual { indicator, value } => {
+                indicator.next(data)?.cmp_output(value, |x, y| x >= y)
+            }
+            Condition::LessThanOrEqual { indicator, value } => {
+                indicator.next(data)?.cmp_output(value, |x, y| x <= y)
+            }
+            Condition::CrossOver {
+                indicator,
+                value,
+                prev_value,
+            } => {
+                let current = indicator.next(data)?;
+                let result = match prev_value {
+                    Some(prev) => {
+                        prev.cmp_output(value, |x, y| x <= y)?
+                            && current.cmp_output(value, |x, y| x > y)?
+                    }
+                    None => false, // First evaluation can't detect a crossover
+                };
+                *prev_value = Some(current);
+                Ok(result)
+            }
+            Condition::CrossUnder {
+                indicator,
+                value,
+                prev_value,
+            } => {
+                let current = indicator.next(data)?;
+                let result = match prev_value {
+                    Some(prev) => {
+                        prev.cmp_output(value, |x, y| x >= y)?
+                            && current.cmp_output(value, |x, y| x < y)?
+                    }
+                    None => false, // First evaluation can't detect a crossunder
+                };
+                *prev_value = Some(current);
+                Ok(result)
             }
             Condition::And(conds) => {
                 for c in conds.iter_mut() {
@@ -68,6 +140,11 @@ impl Condition {
                 conds.iter().filter_map(|c| c.max_period()).max()
             }
             Condition::Not(cond) => cond.max_period(),
+            Condition::Equals { indicator, .. } => Some(indicator.period()),
+            Condition::GreaterThanOrEqual { indicator, .. } => Some(indicator.period()),
+            Condition::LessThanOrEqual { indicator, .. } => Some(indicator.period()),
+            Condition::CrossOver { indicator, .. } => Some(indicator.period()),
+            Condition::CrossUnder { indicator, .. } => Some(indicator.period()),
         }
     }
 }

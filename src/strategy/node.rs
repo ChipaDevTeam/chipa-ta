@@ -15,6 +15,8 @@ pub enum SequenceMode {
     All,
     /// Return the action with the highest occurrence; on tie defaults to Hold.
     Majority,
+    /// Return an action if at least the specified percentage of nodes agree; otherwise Hold.
+    Percentage(u8), // 0-100 representing percentage threshold
 }
 
 /// AST node for composable trading strategies.
@@ -112,6 +114,25 @@ impl StrategyNode {
                             .into_iter()
                             .max_by_key(|&(_, c)| c)
                             .map(|(a, _)| a)
+                            .unwrap_or(Action::Hold)
+                    }
+                    SequenceMode::Percentage(percentage) => {
+                        use std::collections::HashMap;
+                        let mut counts: HashMap<Action, usize> = HashMap::new();
+                        for a in &actions {
+                            *counts.entry(*a).or_insert(0) += 1;
+                        }
+                        let total = actions.len();
+                        counts
+                            .into_iter()
+                            .filter_map(|(a, c)| {
+                                if c * 100 / total >= *percentage as usize {
+                                    Some(a)
+                                } else {
+                                    None
+                                }
+                            })
+                            .next()
                             .unwrap_or(Action::Hold)
                     }
                 };
@@ -250,5 +271,59 @@ mod tests {
         assert_eq!(seq.max_period(), Some(20));
         dbg!(&seq);
         dbg!(serde_json::to_string(&seq).unwrap());
+    }
+
+    #[test]
+    fn test_validate_valid_strategy() {
+        // Simple action node is always valid
+        let node = StrategyNode::Action(Action::Buy);
+        assert!(node.validate().is_ok());
+
+        // If with both branches
+        let node = StrategyNode::If {
+            condition: Condition::GreaterThan {
+                indicator: Indicator::rsi(5).unwrap(),
+                value: crate::types::OutputType::from(0.0),
+            },
+            then_branch: Box::new(StrategyNode::Action(Action::Sell)),
+            else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+        };
+        assert!(node.validate().is_ok());
+
+        // Sequence of two actions
+        let seq = StrategyNode::Sequence {
+            mode: SequenceMode::First,
+            nodes: vec![
+                StrategyNode::Action(Action::Buy),
+                StrategyNode::Action(Action::Sell),
+            ],
+        };
+        assert!(seq.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_missing_else_branch() {
+        // If without else should error
+        let node = StrategyNode::If {
+            condition: Condition::LessThan {
+                indicator: Indicator::rsi(3).unwrap(),
+                value: crate::types::OutputType::from(0.0),
+            },
+            then_branch: Box::new(StrategyNode::Action(Action::Hold)),
+            else_branch: None,
+        };
+        let err = node.validate().unwrap_err();
+        assert_eq!(err, StrategyError::MissingElseBranch);
+    }
+
+    #[test]
+    fn test_validate_empty_sequence() {
+        // Sequence with no nodes should error
+        let seq = StrategyNode::Sequence {
+            mode: SequenceMode::Any,
+            nodes: vec![],
+        };
+        let err = seq.validate().unwrap_err();
+        assert_eq!(err, StrategyError::EmptySequence);
     }
 }
