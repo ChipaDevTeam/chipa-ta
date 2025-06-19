@@ -1,9 +1,9 @@
 pub mod error;
 pub mod helper;
-pub mod strategy;
-pub mod preprocessing;
 /// This is a Technical analysis crate based on [`ta-rs`](https://github.com/greyblake/ta-rs) and [`rust_ti`](https://github.com/0100101001010000/RustTI)
 pub mod indicators;
+pub mod preprocessing;
+pub mod strategy;
 pub mod traits;
 pub mod types;
 

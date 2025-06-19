@@ -2,6 +2,7 @@ use crate::error::TaResult;
 use crate::preprocessing::PreprocessingStep;
 use crate::strategy::error::StrategyError;
 use crate::strategy::{Action, Condition, MarketData};
+use crate::traits::{Period, Reset};
 use serde::{Deserialize, Serialize};
 
 /// Aggregation modes for `Sequence` nodes.
@@ -26,7 +27,7 @@ pub enum SequenceMode {
 /// - If: conditional branching based on market data.
 /// - Action: buy/sell/hold signals.
 /// - Sequence: chain multiple nodes in order.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum StrategyNode {
     /// Apply a preprocessing step to the market data.
     Preprocess(PreprocessingStep),
@@ -40,6 +41,12 @@ pub enum StrategyNode {
         then_branch: Box<StrategyNode>,
         /// Optional node to execute when condition is false.
         else_branch: Option<Box<StrategyNode>>,
+    },
+
+    Timeout {
+        cooldown: usize,           // Cooldown period in seconds
+        remaining: usize,          // Remaining cooldown time
+        action: Box<StrategyNode>, // Action to execute after cooldown
     },
 
     /// Action node: produce a trading action (Buy, Sell, Hold).
@@ -138,6 +145,21 @@ impl StrategyNode {
                 };
                 Ok(chosen)
             }
+            StrategyNode::Timeout {
+                cooldown,
+                remaining,
+                action,
+            } => {
+                if *remaining > 0 {
+                    *remaining -= 1; // Decrement cooldown
+                    Ok(Action::Hold) // Still in cooldown
+                } else {
+                    // Execute action after cooldown
+                    let result = action.evaluate(data)?;
+                    *remaining = *cooldown; // Reset cooldown
+                    Ok(result)
+                }
+            }
         }
     }
 
@@ -168,6 +190,7 @@ impl StrategyNode {
             StrategyNode::Sequence { nodes, .. } => {
                 nodes.iter().filter_map(|n| n.max_period()).max()
             }
+            StrategyNode::Timeout { action, .. } => action.max_period(),
         }
     }
 
@@ -201,6 +224,49 @@ impl StrategyNode {
                 }
                 Ok(())
             }
+            StrategyNode::Timeout { action, .. } => {
+                // Action must be valid
+                action.validate()?;
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Period for StrategyNode {
+    /// Returns the maximum period of any contained indicators.
+    fn period(&self) -> usize {
+        self.max_period().unwrap_or(0)
+    }
+}
+
+impl Reset for StrategyNode {
+    fn reset(&mut self) {
+        match self {
+            StrategyNode::Preprocess(step) => step.reset(),
+            StrategyNode::If {
+                then_branch,
+                else_branch,
+                condition,
+            } => {
+                then_branch.reset();
+                if let Some(else_node) = else_branch {
+                    else_node.reset();
+                }
+                condition.reset();
+            }
+            StrategyNode::Action(_) => {}
+            StrategyNode::Sequence { nodes, .. } => {
+                for node in nodes {
+                    node.reset();
+                }
+            }
+            StrategyNode::Timeout {
+                action, remaining, ..
+            } => {
+                action.reset();
+                *remaining = 0; // Reset cooldown
+            }
         }
     }
 }
@@ -208,6 +274,7 @@ impl StrategyNode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::helper_types::Bar;
     use crate::types::OutputType;
     use crate::Indicator;
     use serde_json;
@@ -325,5 +392,550 @@ mod tests {
         };
         let err = seq.validate().unwrap_err();
         assert_eq!(err, StrategyError::EmptySequence);
+    }
+
+    #[test]
+    fn test_multi_indicator_confluence_strategy() -> TaResult<()> {
+        fn multi_indicator_confluence_strategy() -> TaResult<StrategyNode> {
+            // --- Long Entry ---
+            let long_entry = StrategyNode::If {
+                condition: Condition::And(vec![
+                    // RSI crosses above 30
+                    Condition::CrossOver {
+                        indicator: Indicator::rsi(14)?,
+                        value: OutputType::from(30.0),
+                        prev_value: None,
+                    },
+                    // Close > SMA(50)
+                    Condition::GreaterThan {
+                        indicator: Indicator::sma(50)?,
+                        value: OutputType::Close,
+                    },
+                    // NOTE: Close < Previous Close not supported in Condition
+                    // NOTE: No open position not supported in Condition
+                ]),
+                then_branch: Box::new(StrategyNode::Action(Action::Buy)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+            };
+
+            // --- Short Entry ---
+            let short_entry = StrategyNode::If {
+                condition: Condition::And(vec![
+                    // RSI crosses below 70
+                    Condition::CrossUnder {
+                        indicator: Indicator::rsi(14)?,
+                        value: OutputType::from(70.0),
+                        prev_value: None,
+                    },
+                    // Close < SMA(50)
+                    Condition::LessThan {
+                        indicator: Indicator::sma(50)?,
+                        value: OutputType::Close,
+                    },
+                    // NOTE: Close > Previous Close not supported in Condition
+                    // NOTE: No open position not supported in Condition
+                ]),
+                then_branch: Box::new(StrategyNode::Action(Action::Sell)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+            };
+
+            // --- Combine Long and Short Entries ---
+            Ok(StrategyNode::Sequence {
+                mode: crate::strategy::node::SequenceMode::First,
+                nodes: vec![long_entry, short_entry],
+            })
+        }
+        let mut strategy = multi_indicator_confluence_strategy()?;
+        assert!(strategy.validate().is_ok());
+        dbg!(strategy.max_period());
+        let mut data = MarketData::Float(100.0);
+        let action = strategy.evaluate(&mut data)?;
+        dbg!(action);
+        dbg!(serde_json::to_string(&strategy)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_load_multi_indicator_confluence_strategy() -> TaResult<()> {
+        // Load the strategy from JSON
+        let json = r#"
+            {
+        "Sequence": {
+            "mode": "First",
+            "nodes": [
+            {
+                "If": {
+                "condition": {
+                    "And": [
+                    {
+                        "CrossOver": {
+                        "indicator": { "type": "Rsi", "period": 14 },
+                        "value": { "Single": 30.0 }
+                        }
+                    },
+                    {
+                        "GreaterThan": {
+                        "indicator": { "type": "Sma", "period": 50 },
+                        "value": "Close"
+                        }
+                    }
+                    ]
+                },
+                "then_branch": { "Action": "Buy" },
+                "else_branch": { "Action": "Hold" }
+                }
+            },
+            {
+                "If": {
+                "condition": {
+                    "And": [
+                    {
+                        "CrossUnder": {
+                        "indicator": { "type": "Rsi", "period": 14 },
+                        "value": { "Single": 70.0 }
+                        }
+                    },
+                    {
+                        "LessThan": {
+                        "indicator": { "type": "Sma", "period": 50 },
+                        "value": "Close"
+                        }
+                    }
+                    ]
+                },
+                "then_branch": { "Action": "Sell" },
+                "else_branch": { "Action": "Hold" }
+                }
+            }
+            ]
+        }
+        }
+        "#;
+
+        let mut strategy: StrategyNode = serde_json::from_str(json)?;
+        assert!(strategy.validate().is_ok());
+        dbg!(strategy.max_period());
+        let mut data = MarketData::Float(100.0);
+        let action = strategy.evaluate(&mut data)?;
+        dbg!(action);
+        dbg!(strategy);
+        Ok(())
+    }
+
+    #[test]
+    fn test_advanced_confluence_strategy() -> TaResult<()> {
+        // This strategy combines multiple indicators to generate trading signals with
+        // varying levels of conviction (Buy/StrongBuy, Sell/StrongSell).
+        //
+        // It uses:
+        // - SMA(200) and SMA(50) for trend direction.
+        // - RSI(14) for momentum.
+        // - Williams %R(14) for overbought/oversold conditions.
+
+        // ************************************************************************
+        //                          BUY LOGIC
+        // ************************************************************************
+
+        // Strong Buy condition: RSI is showing very strong momentum.
+        let strong_buy_condition = Condition::GreaterThan {
+            indicator: Indicator::rsi(14)?,
+            value: OutputType::Single(65.0),
+        };
+
+        // Base Buy conditions:
+        // 1. Price is above the medium-term trend (SMA50).
+        // 2. Price is above the long-term trend (SMA200).
+        // 3. Momentum is bullish (RSI > 55).
+        // 4. Not in overbought territory (Williams %R < -20).
+        let buy_conditions = Condition::And(vec![
+            // Using LessThan because we want to check: indicator < value, which is SMA(50) < Close
+            Condition::LessThan {
+                indicator: Indicator::sma(50)?,
+                value: OutputType::Close,
+            },
+            Condition::LessThan {
+                indicator: Indicator::sma(200)?,
+                value: OutputType::Close,
+            },
+            Condition::GreaterThan {
+                indicator: Indicator::rsi(14)?,
+                value: OutputType::Single(55.0),
+            },
+            Condition::LessThan {
+                indicator: Indicator::williams_r(14)?,
+                value: OutputType::Single(-20.0),
+            },
+        ]);
+
+        // Buy-side strategy tree:
+        // If base conditions are met, check for strong buy conditions.
+        let buy_strategy = StrategyNode::If {
+            condition: buy_conditions,
+            then_branch: Box::new(StrategyNode::If {
+                condition: strong_buy_condition,
+                then_branch: Box::new(StrategyNode::Action(Action::StrongBuy)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Buy))),
+            }),
+            else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+        };
+
+        // ************************************************************************
+        //                          SELL LOGIC
+        // ************************************************************************
+
+        // Strong Sell condition: RSI is showing very strong bearish momentum.
+        let strong_sell_condition = Condition::LessThan {
+            indicator: Indicator::rsi(14)?,
+            value: OutputType::Single(35.0),
+        };
+
+        // Base Sell conditions:
+        // 1. Price is below the medium-term trend (SMA50).
+        // 2. Price is below the long-term trend (SMA200).
+        // 3. Momentum is bearish (RSI < 45).
+        // 4. Not in oversold territory (Williams %R > -80).
+        let sell_conditions = Condition::And(vec![
+            // Using GreaterThan because we want to check: indicator > value, which is SMA(50) > Close
+            Condition::GreaterThan {
+                indicator: Indicator::sma(50)?,
+                value: OutputType::Close,
+            },
+            Condition::GreaterThan {
+                indicator: Indicator::sma(200)?,
+                value: OutputType::Close,
+            },
+            Condition::LessThan {
+                indicator: Indicator::rsi(14)?,
+                value: OutputType::Single(45.0),
+            },
+            Condition::GreaterThan {
+                indicator: Indicator::williams_r(14)?,
+                value: OutputType::Single(-80.0),
+            },
+        ]);
+
+        // Sell-side strategy tree:
+        // If base conditions are met, check for strong sell conditions.
+        let sell_strategy = StrategyNode::If {
+            condition: sell_conditions,
+            then_branch: Box::new(StrategyNode::If {
+                condition: strong_sell_condition,
+                then_branch: Box::new(StrategyNode::Action(Action::StrongSell)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Sell))),
+            }),
+            else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+        };
+
+        // ************************************************************************
+        //                          FINAL STRATEGY
+        // ************************************************************************
+
+        // The final strategy is a sequence that evaluates the buy and sell logic.
+        // `SequenceMode::First` ensures that the first non-Hold action is returned.
+        let strategy = StrategyNode::Sequence {
+            mode: SequenceMode::First,
+            nodes: vec![
+                buy_strategy,
+                sell_strategy,
+                // Fallback action if no other conditions are met.
+                StrategyNode::Action(Action::Hold),
+            ],
+        };
+
+        // Validate that the strategy is well-formed (e.g., all paths lead to an action).
+        assert!(strategy.validate().is_ok());
+
+        // Print the strategy's structure as JSON for inspection.
+        let json = serde_json::to_string(&strategy)?;
+        dbg!(json);
+
+        // We can't easily test the outcome without a full market data series,
+        // but we can validate its construction and serialization.
+        Ok(())
+    }
+
+    #[test]
+    fn test_advanced_confluence_strategy_v2() -> TaResult<()> {
+        // This strategy is a complex confluence model using trend, momentum, and oscillator indicators.
+        // It aims to generate high-conviction signals by requiring agreement across multiple timeframes and indicator types.
+
+        // --- INDICATORS ---
+        // Trend
+        let ema_long = Indicator::ema(200)?;
+        let ema_short = Indicator::ema(50)?;
+
+        // Momentum
+        let rsi = Indicator::rsi(14)?;
+        let ao = Indicator::ao(5, 34)?; // Default periods for Awesome Oscillator
+
+        // --- LONG CONDITIONS (BUY) ---
+        // All must be true for a buy signal.
+        let long_conditions = Condition::And(vec![
+            // 1. Major trend is up: Price is above the long-term moving average.
+            Condition::LessThan {
+                indicator: ema_long.clone(),
+                value: OutputType::Close, // equivalent to Close > EMA(200)
+            },
+            // 2. Short-term trend is also up: Price is above the short-term moving average.
+            Condition::LessThan {
+                indicator: ema_short.clone(),
+                value: OutputType::Close, // equivalent to Close > EMA(50)
+            },
+            // 3. Bullish momentum is confirmed: RSI is in the bullish zone.
+            Condition::GreaterThan {
+                indicator: rsi.clone(),
+                value: OutputType::Single(55.0),
+            },
+            // 4. Awesome Oscillator confirms bullish momentum.
+            Condition::GreaterThan {
+                indicator: ao.clone(),
+                value: OutputType::Single(0.0),
+            },
+        ]);
+
+        // --- SHORT CONDITIONS (SELL) ---
+        // All must be true for a sell signal.
+        let short_conditions = Condition::And(vec![
+            // 1. Major trend is down: Price is below the long-term moving average.
+            Condition::GreaterThan {
+                indicator: ema_long,
+                value: OutputType::Close, // equivalent to Close < EMA(200)
+            },
+            // 2. Short-term trend is also down: Price is below the short-term moving average.
+            Condition::GreaterThan {
+                indicator: ema_short,
+                value: OutputType::Close, // equivalent to Close < EMA(50)
+            },
+            // 3. Bearish momentum is confirmed: RSI is in the bearish zone.
+            Condition::LessThan {
+                indicator: rsi,
+                value: OutputType::Single(45.0),
+            },
+            // 4. Awesome Oscillator confirms bearish momentum.
+            Condition::LessThan {
+                indicator: ao,
+                value: OutputType::Single(0.0),
+            },
+        ]);
+
+        // --- STRATEGY TREE ---
+        // If long conditions are met, StrongBuy.
+        // Else, if short conditions are met, StrongSell.
+        // Otherwise, Hold.
+        let mut strategy = StrategyNode::If {
+            condition: long_conditions,
+            then_branch: Box::new(StrategyNode::Action(Action::StrongBuy)),
+            else_branch: Some(Box::new(StrategyNode::If {
+                condition: short_conditions,
+                then_branch: Box::new(StrategyNode::Action(Action::StrongSell)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+            })),
+        };
+
+        // --- VALIDATION & EXECUTION ---
+        assert!(strategy.validate().is_ok());
+
+        // We can print the strategy structure and its required period.
+        println!(
+            "Advanced Strategy V2 JSON: {}",
+            serde_json::to_string_pretty(&strategy)?
+        );
+        println!(
+            "Advanced Strategy V2 Max Period: {:?}",
+            strategy.max_period()
+        );
+
+        // To properly test this, we would need a series of market data points.
+        // For this test, we'll just run one evaluation with a sample data point.
+        let bar = Bar {
+            open: 100.0,
+            price: 102.0,
+            high: 105.0,
+            low: 98.0,
+            close: 102.0,
+            volume: 1000.0,
+        };
+        let mut data = MarketData::Bar(bar);
+
+        // Note: The first `period` evaluations will not be reliable as indicators warm up.
+        // A full test would involve iterating over a historical dataset.
+        let action = strategy.evaluate(&mut data)?;
+        println!("Action for first data point: {:?}", action);
+
+        // A simple assertion that it runs without error.
+        // The actual action depends on the warm-up state of the indicators.
+        assert!(matches!(
+            action,
+            Action::StrongBuy | Action::StrongSell | Action::Hold
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_multi_indicator_crossover_strategy() -> TaResult<()> {
+        // This strategy uses RSI crossovers, Awesome Oscillator, and an EMA to generate signals.
+
+        // --- INDICATORS ---
+        let rsi = Indicator::rsi(14)?;
+        let ao = Indicator::ao(5, 34)?;
+        let ema = Indicator::ema(50)?;
+
+        // --- LONG CONDITIONS (BUY) ---
+        let long_conditions = Condition::And(vec![
+            // 1. RSI crosses above the oversold level (30).
+            Condition::CrossOver {
+                indicator: rsi.clone(),
+                value: OutputType::Single(30.0),
+                prev_value: None,
+            },
+            // 2. Awesome Oscillator is positive, indicating bullish momentum.
+            Condition::GreaterThan {
+                indicator: ao.clone(),
+                value: OutputType::Single(0.0),
+            },
+            // 3. Price is above the 50-period EMA, confirming an uptrend.
+            Condition::LessThan {
+                // This means ema < close
+                indicator: ema.clone(),
+                value: OutputType::Close,
+            },
+        ]);
+
+        // --- SHORT CONDITIONS (SELL) ---
+        let short_conditions = Condition::And(vec![
+            // 1. RSI crosses below the overbought level (70).
+            Condition::CrossUnder {
+                indicator: rsi,
+                value: OutputType::Single(70.0),
+                prev_value: None,
+            },
+            // 2. Awesome Oscillator is negative, indicating bearish momentum.
+            Condition::LessThan {
+                indicator: ao,
+                value: OutputType::Single(0.0),
+            },
+            // 3. Price is below the 50-period EMA, confirming a downtrend.
+            Condition::GreaterThan {
+                // This means ema > close
+                indicator: ema,
+                value: OutputType::Close,
+            },
+        ]);
+
+        // --- STRATEGY TREE ---
+        let mut strategy = StrategyNode::If {
+            condition: long_conditions,
+            then_branch: Box::new(StrategyNode::Action(Action::StrongBuy)),
+            else_branch: Some(Box::new(StrategyNode::If {
+                condition: short_conditions,
+                then_branch: Box::new(StrategyNode::Action(Action::StrongSell)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+            })),
+        };
+
+        // --- VALIDATION & EXECUTION ---
+        assert!(strategy.validate().is_ok());
+
+        println!(
+            "Strategy JSON: {}",
+            serde_json::to_string_pretty(&strategy)?
+        );
+
+        // This test requires multiple data points to test crossovers.
+        let bar = Bar {
+            open: 100.0,
+            price: 102.0,
+            high: 105.0,
+            low: 98.0,
+            close: 102.0,
+            volume: 1000.0,
+        };
+        let mut data = MarketData::Bar(bar);
+        // First run, no crossover yet.
+        let action1 = strategy.evaluate(&mut data)?;
+        println!("Action 1: {:?}", action1);
+        assert_eq!(action1, Action::Hold); // Should be Hold as crossover cannot happen on first tick.
+
+        // To properly test, we need a sequence of data that triggers a crossover.
+        // This is complex to set up in a unit test without a data feed.
+        // The main purpose here is to ensure the strategy structure is valid and runs.
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_supertrend_rsi_ema_strategy() -> TaResult<()> {
+        // --- INDICATORS ---
+        let super_trend = Indicator::super_trend(3.0, 10)?;
+        let rsi = Indicator::rsi(14)?;
+        let ema_long = Indicator::ema(200)?;
+
+        // --- LONG CONDITIONS ---
+        let long_conditions = Condition::And(vec![
+            // 1. SuperTrend is bullish (Close > SuperTrend value)
+            Condition::LessThan {
+                indicator: super_trend.clone(),
+                value: OutputType::Close,
+            },
+            // 2. RSI confirms bullish momentum
+            Condition::GreaterThan {
+                indicator: rsi.clone(),
+                value: OutputType::Single(50.0),
+            },
+            // 3. Long-term trend is bullish
+            Condition::LessThan {
+                indicator: ema_long.clone(),
+                value: OutputType::Close,
+            },
+        ]);
+
+        // --- SHORT CONDITIONS ---
+        let short_conditions = Condition::And(vec![
+            // 1. SuperTrend is bearish (Close < SuperTrend value)
+            Condition::GreaterThan {
+                indicator: super_trend,
+                value: OutputType::Close,
+            },
+            // 2. RSI confirms bearish momentum
+            Condition::LessThan {
+                indicator: rsi,
+                value: OutputType::Single(50.0),
+            },
+            // 3. Long-term trend is bearish
+            Condition::GreaterThan {
+                indicator: ema_long,
+                value: OutputType::Close,
+            },
+        ]);
+
+        // --- STRATEGY TREE ---
+        let mut strategy = StrategyNode::If {
+            condition: long_conditions,
+            then_branch: Box::new(StrategyNode::Action(Action::Buy)),
+            else_branch: Some(Box::new(StrategyNode::If {
+                condition: short_conditions,
+                then_branch: Box::new(StrategyNode::Action(Action::Sell)),
+                else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
+            })),
+        };
+
+        // --- VALIDATION & EXECUTION ---
+        assert!(strategy.validate().is_ok());
+        let bar = Bar {
+            open: 100.0,
+            price: 102.0,
+            high: 105.0,
+            low: 98.0,
+            close: 102.0,
+            volume: 1000.0,
+        };
+        let mut data = MarketData::Bar(bar);
+        let action = strategy.evaluate(&mut data)?;
+
+        // Just a basic check that it runs.
+        assert!(matches!(action, Action::Buy | Action::Sell | Action::Hold));
+
+        Ok(())
     }
 }

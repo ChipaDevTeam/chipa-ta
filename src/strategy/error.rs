@@ -10,6 +10,5 @@ pub enum StrategyError {
     /// A `Sequence` node has no child nodes.
     #[error("Sequence node must contain at least one child")]
     EmptySequence,
-
     // Potential future errors: InvalidIndicator, ParseError, etc.
 }

@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::types::OutputTypeCmpError;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum TaError {
     #[error("InvalidParameter '{0}' found")]
     InvalidParameter(String),
@@ -17,6 +17,8 @@ pub enum TaError {
     /// Error originating from the strategy module.
     #[error("Strategy error: {0}")]
     Strategy(#[from] crate::strategy::StrategyError),
+    #[error("Serde processing error: {0}")]
+    Serde(#[from] serde_json::Error),
 }
 
 pub type TaResult<T> = Result<T, TaError>;

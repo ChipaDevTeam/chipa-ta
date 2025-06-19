@@ -2,12 +2,12 @@ use crate::traits::Candle;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Bar {
-    open: f64,
-    high: f64,
-    low: f64,
-    close: f64,
-    price: f64,
-    volume: f64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub price: f64,
+    pub volume: f64,
 }
 
 impl Default for Bar {
@@ -63,7 +63,6 @@ impl Bar {
     }
 }
 
-
 impl Candle for Bar {
     fn close(&self) -> f64 {
         self.close
@@ -107,7 +106,6 @@ pub struct Cycle {
     period: usize,
     index: usize,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Queue<T> {

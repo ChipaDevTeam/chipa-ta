@@ -6,7 +6,7 @@ use crate::{helper_types::Bar, traits::Candle};
 pub enum MarketData {
     Bar(Bar), // Boxed trait object for dynamic dispatch
     // Add more variants as needed for other Candle implementors
-    Float(f64)
+    Float(f64),
 }
 
 impl MarketData {
@@ -61,5 +61,4 @@ impl Candle for MarketData {
             MarketData::Float(_) => f64::NAN, // Volume not applicable for Float variant
         }
     }
-
 }

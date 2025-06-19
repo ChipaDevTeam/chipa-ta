@@ -285,7 +285,6 @@ pub enum Indicator {
     ///
     /// **Output**: Single value representing Williams %R
     WilliamsR(WilliamsR),
-
 }
 
 /// A placeholder indicator that passes through input values unchanged.
@@ -354,10 +353,12 @@ impl Next<f64> for Indicator {
                 Err(crate::error::TaError::Unexpected(
                     "OnBalanceVolume requires Candle input".to_string(),
                 ))
-            },
+            }
             Self::Ao(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Kc(indicator) => indicator.next(input).map(|o| OutputType::Array(Vec::from(o))),
-            Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from)
+            Self::Kc(indicator) => indicator
+                .next(input)
+                .map(|o| OutputType::Array(Vec::from(o))),
+            Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from),
         }
     }
 }
@@ -390,8 +391,10 @@ impl<T: Candle> Next<&T> for Indicator {
             Self::Sd(indicator) => indicator.next(input).map(OutputType::from),
             Self::Mae(indicator) => indicator.next(input).map(OutputType::from),
             Self::Obv(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Kc(indicator) => indicator.next(input).map(|o| OutputType::Array(Vec::from(o))),
-            Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from)
+            Self::Kc(indicator) => indicator
+                .next(input)
+                .map(|o| OutputType::Array(Vec::from(o))),
+            Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from),
         }
     }
 }

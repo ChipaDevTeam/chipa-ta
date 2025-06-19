@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::{TaError, TaResult}, traits::{Indicator, Next, Period, Reset, Candle}};
-
-use super::{
-    AverageTrueRange as Atr,
-    ExponentialMovingAverage as Ema
+use crate::{
+    error::{TaError, TaResult},
+    traits::{Candle, Indicator, Next, Period, Reset},
 };
+
+use super::{AverageTrueRange as Atr, ExponentialMovingAverage as Ema};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct KeltnerChannel {
@@ -27,7 +27,7 @@ impl<'de> Deserialize<'de> for KeltnerChannel {
         }
         // Deserialize the KeltnerChannel struct
         let kcv = KeltnerChannelVisitor::deserialize(deserializer)?;
-        
+
         // Initialize the AverageTrueRange and ExponentialMovingAverage with the period
         let kc = KeltnerChannel {
             multiplier: kcv.multiplier,
@@ -54,7 +54,8 @@ impl Serialize for KeltnerChannel {
         KeltnerChannelVisitor {
             period: self.ema.period(),
             multiplier: self.multiplier,
-        }.serialize(serializer)
+        }
+        .serialize(serializer)
     }
 }
 
@@ -64,18 +65,18 @@ pub struct KeltnerChannelOutput {
     pub lower_band: f64,
 }
 
-
 impl Default for KeltnerChannel {
     fn default() -> Self {
         Self::new(10, 2.0).unwrap()
     }
 }
 
-
 impl KeltnerChannel {
     pub fn new(period: usize, multiplier: f64) -> TaResult<Self> {
         if period == 0 {
-            return Err(TaError::InvalidParameter("Period must be greater than 0".to_string()));
+            return Err(TaError::InvalidParameter(
+                "Period must be greater than 0".to_string(),
+            ));
         }
         Ok(Self {
             multiplier,
@@ -131,9 +132,8 @@ impl<T: Candle> Next<&T> for KeltnerChannel {
     }
 }
 
-
 impl From<KeltnerChannelOutput> for Vec<f64> {
     fn from(output: KeltnerChannelOutput) -> Self {
-       vec![output.upper_band, output.middle_band, output.lower_band]
+        vec![output.upper_band, output.middle_band, output.lower_band]
     }
 }

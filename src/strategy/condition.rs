@@ -1,14 +1,14 @@
 use crate::{
     error::TaResult,
     strategy::MarketData,
-    traits::{Next, Period},
+    traits::{Next, Period, Reset},
     types::OutputType,
     Indicator,
 };
 use serde::{Deserialize, Serialize};
 
 /// Logical conditions for strategy execution.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Condition {
     /// Checks if an indicator value is greater than a threshold.
     GreaterThan {
@@ -64,19 +64,29 @@ impl Condition {
     pub fn evaluate(&mut self, data: &MarketData) -> TaResult<bool> {
         match self {
             Condition::GreaterThan { indicator, value } => {
-                indicator.next(data)?.cmp_output(value, |x, y| x > y)
+                let lhs = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
+                Ok(lhs.gt(&rhs))
             }
             Condition::LessThan { indicator, value } => {
-                indicator.next(data)?.cmp_output(value, |x, y| x < y)
+                let lhs = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
+                Ok(lhs.lt(&rhs))
             }
             Condition::Equals { indicator, value } => {
-                indicator.next(data)?.cmp_output(value, |x, y| x == y)
+                let lhs = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
+                Ok(lhs.eq(&rhs))
             }
             Condition::GreaterThanOrEqual { indicator, value } => {
-                indicator.next(data)?.cmp_output(value, |x, y| x >= y)
+                let lhs = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
+                Ok(lhs.ge(&rhs))
             }
             Condition::LessThanOrEqual { indicator, value } => {
-                indicator.next(data)?.cmp_output(value, |x, y| x <= y)
+                let lhs = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
+                Ok(lhs.le(&rhs))
             }
             Condition::CrossOver {
                 indicator,
@@ -84,10 +94,11 @@ impl Condition {
                 prev_value,
             } => {
                 let current = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
                 let result = match prev_value {
                     Some(prev) => {
-                        prev.cmp_output(value, |x, y| x <= y)?
-                            && current.cmp_output(value, |x, y| x > y)?
+                        (*prev).le(&rhs)
+                            && current.gt(&rhs)
                     }
                     None => false, // First evaluation can't detect a crossover
                 };
@@ -100,10 +111,11 @@ impl Condition {
                 prev_value,
             } => {
                 let current = indicator.next(data)?;
+                let rhs = value.resolve(data)?;
                 let result = match prev_value {
                     Some(prev) => {
-                        prev.cmp_output(value, |x, y| x >= y)?
-                            && current.cmp_output(value, |x, y| x < y)?
+                        (*prev).ge(&rhs)
+                            && current.lt(&rhs)
                     }
                     None => false, // First evaluation can't detect a crossunder
                 };
@@ -145,6 +157,34 @@ impl Condition {
             Condition::LessThanOrEqual { indicator, .. } => Some(indicator.period()),
             Condition::CrossOver { indicator, .. } => Some(indicator.period()),
             Condition::CrossUnder { indicator, .. } => Some(indicator.period()),
+        }
+    }
+}
+
+impl Period for Condition {
+    fn period(&self) -> usize {
+        self.max_period().unwrap_or(0)
+    }
+}
+
+impl Reset for Condition {
+    fn reset(&mut self) {
+        match self {
+            Condition::GreaterThan { indicator, .. }
+            | Condition::LessThan { indicator, .. }
+            | Condition::Equals { indicator, .. }
+            | Condition::GreaterThanOrEqual { indicator, .. }
+            | Condition::LessThanOrEqual { indicator, .. }
+            | Condition::CrossOver { indicator, .. }
+            | Condition::CrossUnder { indicator, .. } => {
+                indicator.reset();
+            }
+            Condition::And(conds) | Condition::Or(conds) => {
+                for c in conds {
+                    c.reset();
+                }
+            }
+            Condition::Not(c) => c.reset(),
         }
     }
 }

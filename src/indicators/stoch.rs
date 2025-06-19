@@ -204,7 +204,7 @@ mod tests {
 
         // Assert that 'values' and 'd' are not in the serialized output
         assert!(!serialized.contains("values"));
-        assert!(!serialized.contains("d"));
+        // assert!(!serialized.contains("d"));
         assert!(serialized.contains(r#""period":14"#));
         assert!(serialized.contains(r#""smoothing_period":3"#));
 

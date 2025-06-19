@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, traits::{Candle, Indicator, Next, Period, Reset}};
-
+use crate::{
+    error::TaResult,
+    traits::{Candle, Indicator, Next, Period, Reset},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OnBalanceVolume {
@@ -16,7 +18,6 @@ impl Default for OnBalanceVolume {
         Self::new()
     }
 }
-
 
 impl OnBalanceVolume {
     pub fn new() -> Self {
@@ -93,16 +94,36 @@ mod tests {
     fn test_on_balance_volume() {
         let mut obv = OnBalanceVolume::new();
         let candles = vec![
-            TestCandle { close: 100.0, volume: 10.0 },
-            TestCandle { close: 105.0, volume: 20.0 },
-            TestCandle { close: 102.0, volume: 15.0 },
-            TestCandle { close: 108.0, volume: 25.0 },
-            TestCandle { close: 104.0, volume: 30.0 },
+            TestCandle {
+                close: 100.0,
+                volume: 10.0,
+            },
+            TestCandle {
+                close: 105.0,
+                volume: 20.0,
+            },
+            TestCandle {
+                close: 102.0,
+                volume: 15.0,
+            },
+            TestCandle {
+                close: 108.0,
+                volume: 25.0,
+            },
+            TestCandle {
+                close: 104.0,
+                volume: 30.0,
+            },
         ];
 
         for candle in candles {
             let result = obv.next(&candle).unwrap();
-            println!("OBV after candle with close {} and volume {}: {}", candle.close(), candle.volume(), result);
+            println!(
+                "OBV after candle with close {} and volume {}: {}",
+                candle.close(),
+                candle.volume(),
+                result
+            );
         }
     }
 
@@ -117,8 +138,7 @@ mod tests {
     fn test_deserialize() {
         let obv_string = r#"{}"#;
         let obv_check = OnBalanceVolume::new();
-        let obv_deserialized: OnBalanceVolume =
-            serde_json::from_str(obv_string).unwrap();
+        let obv_deserialized: OnBalanceVolume = serde_json::from_str(obv_string).unwrap();
         assert_eq!(obv_deserialized, obv_check)
     }
 }

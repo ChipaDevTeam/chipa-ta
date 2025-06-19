@@ -55,7 +55,6 @@ impl<T: Candle> Next<&T> for MeanAbsoluteError {
     }
 }
 
-
 impl Period for MeanAbsoluteError {
     fn period(&self) -> usize {
         self.period

@@ -1,19 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, traits::{Candle, Indicator, Next, Period, Reset}, types::Queue};
-
+use crate::{
+    error::TaResult,
+    traits::{Candle, Indicator, Next, Period, Reset},
+    types::Queue,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WilliamsR {
     highs: Queue<f64>,
-    lows: Queue<f64>
+    lows: Queue<f64>,
 }
 
 impl Default for WilliamsR {
     fn default() -> Self {
         Self {
             highs: Queue::new(14).unwrap(),
-            lows: Queue::new(14).unwrap()
+            lows: Queue::new(14).unwrap(),
         }
     }
 }
@@ -21,9 +24,9 @@ impl Default for WilliamsR {
 impl WilliamsR {
     pub fn new(period: usize) -> TaResult<Self> {
         Ok(Self {
-                    highs: Queue::new(period)?,
-                    lows: Queue::new(period)?
-                })
+            highs: Queue::new(period)?,
+            lows: Queue::new(period)?,
+        })
     }
 }
 
@@ -85,8 +88,14 @@ impl Next<f64> for WilliamsR {
             return Ok(0.0); // Not enough data to calculate Williams %R
         }
 
-        let highest_high = self.highs.iter().fold(f64::MIN, |arg0: f64, other: &f64| f64::max(arg0, *other));
-        let lowest_low = self.lows.iter().fold(f64::MAX, |arg0: f64, other: &f64| f64::min(arg0, *other));
+        let highest_high = self
+            .highs
+            .iter()
+            .fold(f64::MIN, |arg0: f64, other: &f64| f64::max(arg0, *other));
+        let lowest_low = self
+            .lows
+            .iter()
+            .fold(f64::MAX, |arg0: f64, other: &f64| f64::min(arg0, *other));
         if highest_high == lowest_low {
             return Ok(0.0); // Avoid division by zero
         }
@@ -95,7 +104,6 @@ impl Next<f64> for WilliamsR {
         Ok(williams_r)
     }
 }
-
 
 impl<C: Candle> Next<&C> for WilliamsR {
     type Output = f64;
@@ -108,8 +116,14 @@ impl<C: Candle> Next<&C> for WilliamsR {
             return Ok(0.0); // Not enough data to calculate Williams %R
         }
 
-        let highest_high = self.highs.iter().fold(f64::MIN, |arg0: f64, other: &f64| f64::max(arg0, *other));
-        let lowest_low = self.lows.iter().fold(f64::MAX, |arg0: f64, other: &f64| f64::min(arg0, *other));
+        let highest_high = self
+            .highs
+            .iter()
+            .fold(f64::MIN, |arg0: f64, other: &f64| f64::max(arg0, *other));
+        let lowest_low = self
+            .lows
+            .iter()
+            .fold(f64::MAX, |arg0: f64, other: &f64| f64::min(arg0, *other));
         let current_close = candle.close();
         if highest_high == lowest_low {
             return Ok(0.0); // Avoid division by zero

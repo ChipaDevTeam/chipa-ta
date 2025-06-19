@@ -44,7 +44,7 @@ impl Period for SuperTrend {
 impl Default for SuperTrend {
     fn default() -> Self {
         Self {
-            multiplier: 3.0,            
+            multiplier: 3.0,
             atr: Atr::new(10).unwrap(),
         }
     }

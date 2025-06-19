@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, traits::{Candle, Next, Period, Reset}};
+use crate::{
+    error::TaResult,
+    traits::{Candle, Next, Period, Reset},
+};
 
 use super::SimpleMovingAverage as Sma;
 

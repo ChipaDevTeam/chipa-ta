@@ -10,7 +10,7 @@ pub trait Candle: Clone + Debug + Sized {
         self.price()
     }
 
-    fn high(&self) -> f64 { 
+    fn high(&self) -> f64 {
         self.price()
     }
 

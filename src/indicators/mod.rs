@@ -686,6 +686,9 @@ pub mod py {
             match output {
                 OutputType::Array(arr) => arr.into_pyobject(py),
                 OutputType::Single(val) => val.into_bound_py_any(py),
+                _ => Err(PyValueError::new_err(
+                    "Unexpected output type from indicator",
+                )),
             }
         }
 
@@ -706,6 +709,9 @@ pub mod py {
             match output {
                 OutputType::Array(arr) => arr.into_bound_py_any(py),
                 OutputType::Single(val) => val.into_bound_py_any(py),
+                _ => Err(PyValueError::new_err(
+                    "Unexpected output type from indicator",
+                )),
             }
         }
 
