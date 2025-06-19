@@ -667,9 +667,16 @@ mod tests {
         // Momentum
         let rsi = Indicator::rsi(14)?;
         let ao = Indicator::ao(5, 34)?; // Default periods for Awesome Oscillator
+        let macd = Indicator::macd(12, 26, 9)?; // MACD with standard periods
+
+        // Volatility
+        let bb = Indicator::bb(20, 2.0)?; // Bollinger Bands with standard settings
+        let kc = Indicator::kc(20, 2.0)?; // Keltner Channel with standard settings
+
+        // SuperTrend
+        let super_trend = Indicator::super_trend(3.0, 10)?;
 
         // --- LONG CONDITIONS (BUY) ---
-        // All must be true for a buy signal.
         let long_conditions = Condition::And(vec![
             // 1. Major trend is up: Price is above the long-term moving average.
             Condition::LessThan {
@@ -691,10 +698,24 @@ mod tests {
                 indicator: ao.clone(),
                 value: OutputType::Single(0.0),
             },
+            // 5. MACD line is above its signal line.
+            Condition::GreaterThan {
+                indicator: macd.clone(),
+                value: OutputType::Single(0.0),
+            },
+            // 6. Price is near the lower Bollinger Band.
+            Condition::LessThan {
+                indicator: bb.clone(),
+                value: OutputType::Close, // equivalent to Close < BB Lower Band
+            },
+            // 7. SuperTrend is bullish.
+            Condition::LessThan {
+                indicator: super_trend.clone(),
+                value: OutputType::Close, // equivalent to Close > SuperTrend
+            },
         ]);
 
         // --- SHORT CONDITIONS (SELL) ---
-        // All must be true for a sell signal.
         let short_conditions = Condition::And(vec![
             // 1. Major trend is down: Price is below the long-term moving average.
             Condition::GreaterThan {
@@ -716,18 +737,35 @@ mod tests {
                 indicator: ao,
                 value: OutputType::Single(0.0),
             },
+            // 5. MACD line is below its signal line.
+            Condition::LessThan {
+                indicator: macd,
+                value: OutputType::Single(0.0),
+            },
+            // 6. Price is near the upper Bollinger Band.
+            Condition::GreaterThan {
+                indicator: bb,
+                value: OutputType::Close, // equivalent to Close > BB Upper Band
+            },
+            // 7. SuperTrend is bearish.
+            Condition::GreaterThan {
+                indicator: super_trend,
+                value: OutputType::Close, // equivalent to Close < SuperTrend
+            },
+            // 8. Price is near the Keltner Channel upper band.
+            Condition::GreaterThan {
+                indicator: kc,
+                value: OutputType::Close, // equivalent to Close > KC Upper Band
+            },
         ]);
 
         // --- STRATEGY TREE ---
-        // If long conditions are met, StrongBuy.
-        // Else, if short conditions are met, StrongSell.
-        // Otherwise, Hold.
         let mut strategy = StrategyNode::If {
             condition: long_conditions,
-            then_branch: Box::new(StrategyNode::Action(Action::StrongBuy)),
+            then_branch: Box::new(StrategyNode::Action(Action::Buy)),
             else_branch: Some(Box::new(StrategyNode::If {
                 condition: short_conditions,
-                then_branch: Box::new(StrategyNode::Action(Action::StrongSell)),
+                then_branch: Box::new(StrategyNode::Action(Action::Sell)),
                 else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
             })),
         };
@@ -747,15 +785,14 @@ mod tests {
 
         // To properly test this, we would need a series of market data points.
         // For this test, we'll just run one evaluation with a sample data point.
-        let bar = Bar {
+        let mut data = MarketData::Bar(Bar {
             open: 100.0,
-            price: 102.0,
             high: 105.0,
             low: 98.0,
             close: 102.0,
+            price: 102.0,
             volume: 1000.0,
-        };
-        let mut data = MarketData::Bar(bar);
+        }); // O, H, L, C, V
 
         // Note: The first `period` evaluations will not be reliable as indicators warm up.
         // A full test would involve iterating over a historical dataset.
