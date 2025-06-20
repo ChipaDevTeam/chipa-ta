@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::types::OutputTypeCmpError;
+use crate::types::OutputError;
 
 #[derive(Error, Debug)]
 pub enum TaError {
@@ -13,12 +13,27 @@ pub enum TaError {
     #[error("Unexpected error, {0}")]
     Unexpected(String),
     #[error("Cmp error, {0}")]
-    Cmp(#[from] OutputTypeCmpError),
+    Cmp(#[from] OutputError),
     /// Error originating from the strategy module.
     #[error("Strategy error: {0}")]
     Strategy(#[from] crate::strategy::StrategyError),
     #[error("Serde processing error: {0}")]
     Serde(#[from] serde_json::Error),
+}
+
+impl PartialEq for TaError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TaError::InvalidParameter(a), TaError::InvalidParameter(b)) => a == b,
+            (TaError::EmptyIterator(a), TaError::EmptyIterator(b)) => a == b,
+            (TaError::IncorrectOutputType { expected: a, actual: b }, TaError::IncorrectOutputType { expected: c, actual: d }) => a == c && b == d,
+            (TaError::Unexpected(a), TaError::Unexpected(b)) => a == b,
+            (TaError::Cmp(a), TaError::Cmp(b)) => a == b,
+            (TaError::Strategy(a), TaError::Strategy(b)) => a == b,
+            (TaError::Serde(a), TaError::Serde(b)) => a.to_string() == b.to_string(),
+            _ => false,
+        }
+    }
 }
 
 pub type TaResult<T> = Result<T, TaError>;

@@ -1,4 +1,4 @@
-use crate::error::TaResult;
+use crate::error::{TaError, TaResult};
 use crate::preprocessing::PreprocessingStep;
 use crate::strategy::error::StrategyError;
 use crate::strategy::{Action, Condition, MarketData};
@@ -196,28 +196,29 @@ impl StrategyNode {
 
     /// Validates that every execution path in the strategy ends with an Action.
     /// Returns Ok(()) if valid, or Err(String) describing the first violation.
-    pub fn validate(&self) -> Result<(), StrategyError> {
+    pub fn validate(&self) -> Result<(), TaError> {
         match self {
             StrategyNode::Preprocess(_) => Ok(()),
             StrategyNode::Action(_) => Ok(()),
             StrategyNode::If {
                 then_branch,
                 else_branch,
-                ..
+                condition
             } => {
+                condition.validate()?;
                 // Then branch must be valid
                 then_branch.validate()?;
                 // Else branch must exist and be valid
                 if let Some(else_node) = else_branch {
                     else_node.validate()?;
                 } else {
-                    return Err(StrategyError::MissingElseBranch);
+                    return Err(TaError::from(StrategyError::MissingElseBranch));
                 }
                 Ok(())
             }
             StrategyNode::Sequence { nodes, .. } => {
                 if nodes.is_empty() {
-                    return Err(StrategyError::EmptySequence);
+                    return Err(TaError::from(StrategyError::EmptySequence));
                 }
                 for node in nodes {
                     node.validate()?;
@@ -275,7 +276,7 @@ impl Reset for StrategyNode {
 mod tests {
     use super::*;
     use crate::helper_types::Bar;
-    use crate::types::OutputType;
+    use crate::types::{OutputType, Statics};
     use crate::Indicator;
     use serde_json;
 
@@ -380,7 +381,7 @@ mod tests {
             else_branch: None,
         };
         let err = node.validate().unwrap_err();
-        assert_eq!(err, StrategyError::MissingElseBranch);
+        assert_eq!(err, TaError::from(StrategyError::MissingElseBranch));
     }
 
     #[test]
@@ -391,7 +392,7 @@ mod tests {
             nodes: vec![],
         };
         let err = seq.validate().unwrap_err();
-        assert_eq!(err, StrategyError::EmptySequence);
+        assert_eq!(err, TaError::from(StrategyError::EmptySequence));
     }
 
     #[test]
@@ -643,7 +644,7 @@ mod tests {
         };
 
         // Validate that the strategy is well-formed (e.g., all paths lead to an action).
-        assert!(strategy.validate().is_ok());
+        strategy.validate().unwrap();
 
         // Print the strategy's structure as JSON for inspection.
         let json = serde_json::to_string(&strategy)?;
@@ -701,17 +702,17 @@ mod tests {
             // 5. MACD line is above its signal line.
             Condition::GreaterThan {
                 indicator: macd.clone(),
-                value: OutputType::Single(0.0),
+                value: OutputType::Custom(vec![OutputType::Single(0.0), OutputType::Static(Statics::True), OutputType::Static(Statics::True)]), // equivalent to MACD Line > Signal Line
             },
             // 6. Price is near the lower Bollinger Band.
             Condition::LessThan {
                 indicator: bb.clone(),
-                value: OutputType::Close, // equivalent to Close < BB Lower Band
+                value: OutputType::Custom(vec![OutputType::Static(Statics::True), OutputType::Static(Statics::True), OutputType::Close]), // equivalent to Close < BB Lower Band
             },
             // 7. SuperTrend is bullish.
             Condition::LessThan {
                 indicator: super_trend.clone(),
-                value: OutputType::Close, // equivalent to Close > SuperTrend
+                value: OutputType::Custom(vec![OutputType::Close, OutputType::Close]), // equivalent to Close > SuperTrend
             },
         ]);
 
@@ -740,22 +741,22 @@ mod tests {
             // 5. MACD line is below its signal line.
             Condition::LessThan {
                 indicator: macd,
-                value: OutputType::Single(0.0),
+                value: OutputType::Array(vec![0.0, 0.0, 0.0]),
             },
             // 6. Price is near the upper Bollinger Band.
             Condition::GreaterThan {
                 indicator: bb,
-                value: OutputType::Close, // equivalent to Close > BB Upper Band
+                value: OutputType::Custom(vec![OutputType::Static(Statics::True), OutputType::Close, OutputType::Static(Statics::True)]), // equivalent to Close > BB Upper Band
             },
             // 7. SuperTrend is bearish.
             Condition::GreaterThan {
                 indicator: super_trend,
-                value: OutputType::Close, // equivalent to Close < SuperTrend
+                value: OutputType::Custom(vec![OutputType::Close, OutputType::Close]), // equivalent to Close < SuperTrend
             },
             // 8. Price is near the Keltner Channel upper band.
             Condition::GreaterThan {
                 indicator: kc,
-                value: OutputType::Close, // equivalent to Close > KC Upper Band
+                value: OutputType::Custom(vec![OutputType::Close, OutputType::Static(Statics::True), OutputType::Static(Statics::True)]), // equivalent to Close > KC Upper Band
             },
         ]);
 
@@ -771,7 +772,7 @@ mod tests {
         };
 
         // --- VALIDATION & EXECUTION ---
-        assert!(strategy.validate().is_ok());
+        strategy.validate().unwrap();
 
         // We can print the strategy structure and its required period.
         println!(

@@ -1,4 +1,4 @@
-use core::fmt::Debug;
+use core::fmt::{self, Debug};
 use std::ops::{Deref, DerefMut};
 
 use serde::{Deserialize, Serialize};
@@ -8,13 +8,41 @@ use crate::{
     traits::{Candle, Period, Reset},
 };
 
+
 #[derive(thiserror::Error, Debug, PartialEq)]
-pub enum OutputTypeCmpError {
+pub enum OutputError {
     #[error("Type mismatch")]
     TypeMismatch,
     #[error("Length mismatch between two arrays, array1: {0}, array2: {1}")]
     LengthMismatch(usize, usize),
+    #[error("Invalid output shape {0}")]
+    InvalidOutputShape(OutputShape),
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum OutputShape {
+    Shape(usize), // Normal shape, using enum in case in the future we want to add more shapes
+    Tensor(Vec<Box<OutputShape>>)
+}
+
+impl fmt::Display for OutputShape {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OutputShape::Shape(size) => write!(f, "Shape({})", size),
+            OutputShape::Tensor(shapes) => {
+                write!(f, "Tensor(")?;
+                for (i, shape) in shapes.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", shape)?;
+                }
+                write!(f, ")")
+            }
+        }
+    }
+}
+
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Statics {
@@ -79,7 +107,28 @@ pub enum OutputType {
     Statics(Vec<Statics>),
 }
 
+
 impl OutputType {
+    pub fn output_shape(&self) -> TaResult<OutputShape> {
+        match self {
+            OutputType::Single(_) => Ok(OutputShape::Shape(1)),
+            OutputType::Array(arr) => OutputShape::Shape(arr.len()).validate(),
+            OutputType::Open | OutputType::Close | OutputType::High | OutputType::Low | OutputType::Volume => Ok(OutputShape::Shape(1)),
+            OutputType::Custom(vec) => {
+                OutputShape::Tensor(
+                    vec.iter()
+                        .map(|o| o.output_shape())
+                        .collect::<TaResult<Vec<OutputShape>>>()?
+                        .into_iter()
+                        .map(Box::new)
+                        .collect()
+                ).validate()
+            }
+            OutputType::Static(_) => Ok(OutputShape::Shape(1)),
+            OutputType::Statics(vec) => OutputShape::Shape(vec.len()).validate(),
+        }
+    }
+
     /// Turn any OutputType into actual Single/Array by pulling from the candle.
     pub fn resolve<C: Candle>(&self, data: &C) -> TaResult<OutputType> {
         match self {
@@ -106,6 +155,25 @@ impl OutputType {
             }
             OutputType::Static(_) => Ok(self.clone()),
             OutputType::Statics(_) => Ok(self.clone()),
+        }
+    }
+}
+
+impl OutputShape {
+    pub fn validate(&self) -> TaResult<Self> {
+        match self {
+            OutputShape::Shape(size) if *size > 0 => Ok(self.clone()),
+            OutputShape::Tensor(vec) if !vec.is_empty() => {
+                // If the size of all the elements of the tensor are 1 then return a Shape(len(vec))
+                if vec.iter().all(|s| **s == OutputShape::Shape(1)) {
+                    return Ok(OutputShape::Shape(vec.len()));
+                }
+                for shape in vec {
+                    shape.validate()?;
+                }
+                Ok(self.clone())
+            }
+            shape => Err(TaError::from(OutputError::InvalidOutputShape(shape.clone()))),
         }
     }
 }

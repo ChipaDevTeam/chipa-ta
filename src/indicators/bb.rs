@@ -7,8 +7,9 @@ use serde::{Deserialize, Serialize};
 
 use super::sd::StandardDeviation as Sd;
 use crate::error::TaResult;
-use crate::traits::Candle;
+use crate::traits::{Candle, Indicator};
 use crate::traits::{Next, Period, Reset};
+use crate::types::OutputShape;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct BollingerBands {
@@ -40,6 +41,12 @@ impl<'de> Deserialize<'de> for BollingerBands {
         };
 
         Ok(bb)
+    }
+}
+
+impl Indicator for BollingerBands {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(3) // Average, Upper, Lower
     }
 }
 

@@ -6,7 +6,7 @@ use crate::{
     error::{TaError, TaResult},
     helper_types::Queue,
     traits::{Candle, Indicator, Next, Period, Reset},
-    types::Status,
+    types::{OutputShape, Status},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -17,7 +17,11 @@ pub struct SimpleMovingAverage {
     status: Status<(), Queue<f64>, Queue<f64>>,
 }
 
-impl Indicator for SimpleMovingAverage {}
+impl Indicator for SimpleMovingAverage {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
+    }
+}
 
 impl SimpleMovingAverage {
     pub fn new(period: usize) -> TaResult<Self> {

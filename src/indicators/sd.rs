@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::error::{TaError, TaResult};
 use crate::traits::{Candle, Indicator, Next, Period, Reset};
+use crate::types::OutputShape;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -56,7 +57,11 @@ impl StandardDeviation {
     }
 }
 
-impl Indicator for StandardDeviation {}
+impl Indicator for StandardDeviation {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
+    }
+}
 
 impl Period for StandardDeviation {
     fn period(&self) -> usize {

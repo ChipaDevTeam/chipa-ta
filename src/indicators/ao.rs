@@ -1,8 +1,10 @@
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TaResult,
-    traits::{Candle, Next, Period, Reset},
+    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
 };
 
 use super::SimpleMovingAverage as Sma;
@@ -45,6 +47,23 @@ impl Serialize for AwesomeOscillator {
             long_period: self.long_sma.period(),
         }
         .serialize(serializer)
+    }
+}
+
+impl Indicator for AwesomeOscillator {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
+    }
+}
+
+impl fmt::Display for AwesomeOscillator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "AO({}, {})",
+            self.short_sma.period(),
+            self.long_sma.period()
+        )
     }
 }
 

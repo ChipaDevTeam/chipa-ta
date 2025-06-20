@@ -1,9 +1,11 @@
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TaResult,
     traits::{Candle, Indicator, Next, Period, Reset},
-    types::Queue,
+    types::{OutputShape, Queue},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,7 +64,18 @@ impl<'de> Deserialize<'de> for WilliamsR {
     }
 }
 
-impl Indicator for WilliamsR {}
+impl Indicator for WilliamsR {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
+    }
+
+}
+
+impl fmt::Display for WilliamsR {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "WilliamsR({})", self.period())
+    }
+}
 
 impl Reset for WilliamsR {
     fn reset(&mut self) {

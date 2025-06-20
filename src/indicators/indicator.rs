@@ -1,3 +1,5 @@
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::indicators::ao::AwesomeOscillator;
@@ -7,6 +9,7 @@ use crate::indicators::sd::StandardDeviation;
 use crate::indicators::williams_r::WilliamsR;
 use crate::indicators::{BollingerBands, MeanAbsoluteError, StochasticOscillator};
 use crate::traits::Indicator as IndicatorTrait;
+use crate::types::OutputShape;
 use crate::{
     error::TaResult,
     indicators::{
@@ -312,7 +315,40 @@ impl Period for NoneIndicator {
     }
 }
 
-impl IndicatorTrait for NoneIndicator {}
+impl IndicatorTrait for NoneIndicator {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1) // Single value output
+    }
+}
+
+impl fmt::Display for NoneIndicator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "None")
+    }
+}
+
+impl fmt::Display for Indicator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Indicator: {}", match self {
+            Self::None(i) => i.name(),
+            Self::Ao(i) => i.name(),
+            Self::Atr(i) => i.name(),
+            Self::Bb(i) => i.name(),
+            Self::Ema(i) => i.name(),
+            Self::Kc(i) => i.name(),
+            Self::Macd(i) => i.name(),
+            Self::Mae(i) => i.name(),
+            Self::Obv(i) => i.name(),
+            Self::Rsi(i) => i.name(),
+            Self::Sd(i) => i.name(),
+            Self::Sma(i) => i.name(),
+            Self::Stoch(i) => i.name(),
+            Self::SuperTrend(i) => i.name(),
+            Self::Tr(i) => i.name(),
+            Self::WilliamsR(i) => i.name(),
+        })
+    }
+}
 
 impl Default for Indicator {
     fn default() -> Self {
@@ -361,6 +397,30 @@ impl Next<f64> for Indicator {
             Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from),
         }
     }
+}
+
+impl IndicatorTrait for Indicator {
+    fn output_shape(&self) -> OutputShape {
+        match self {
+            Self::None(indicator) => indicator.output_shape(),
+            Self::Ao(indicator) => indicator.output_shape(),
+            Self::Ema(indicator) => indicator.output_shape(),
+            Self::Sma(indicator) => indicator.output_shape(),
+            Self::Rsi(indicator) => indicator.output_shape(),
+            Self::Macd(indicator) => indicator.output_shape(),
+            Self::Tr(indicator) => indicator.output_shape(),
+            Self::Atr(indicator) => indicator.output_shape(),
+            Self::SuperTrend(indicator) => indicator.output_shape(),
+            Self::Bb(indicator) => indicator.output_shape(),
+            Self::Stoch(indicator) => indicator.output_shape(),
+            Self::Sd(indicator) => indicator.output_shape(),
+            Self::Mae(indicator) => indicator.output_shape(),
+            Self::Obv(indicator) => indicator.output_shape(),
+            Self::Kc(indicator) => indicator.output_shape(),
+            Self::WilliamsR(indicator) => indicator.output_shape(),
+        }
+    }
+
 }
 
 impl<T: Candle> Next<&T> for Indicator {
@@ -784,4 +844,11 @@ impl Indicator {
     pub fn williams_r(period: usize) -> TaResult<Self> {
         Ok(Self::WilliamsR(WilliamsR::new(period)?))
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    
 }

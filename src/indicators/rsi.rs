@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::TaResult,
     indicators::ExponentialMovingAverage as Ema,
-    traits::{Candle, Next, Period, Reset},
+    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -77,6 +77,12 @@ impl RelativeStrengthIndex {
             prev_val: 0.0,
             is_new: true,
         })
+    }
+}
+
+impl Indicator for RelativeStrengthIndex {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
     }
 }
 

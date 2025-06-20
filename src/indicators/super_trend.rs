@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::TaResult;
 use crate::indicators::AverageTrueRange as Atr;
 use crate::traits::{Candle, Indicator, Next, Period, Reset};
+use crate::types::OutputShape;
 
 //  TODO: Fix SuperTrend implementation to use the correct calculations
 //  SuperTrend is a trend-following indicator that uses the Average True Range (ATR) to determine the trend direction.
@@ -33,7 +34,18 @@ impl From<SuperTrendOutput> for Vec<f64> {
     }
 }
 
-impl Indicator for SuperTrend {}
+impl Indicator for SuperTrend {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(2)
+    }
+
+}
+
+impl std::fmt::Display for SuperTrend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SuperTrend({}, {})", self.period(), self.multiplier)
+    }
+}
 
 impl Period for SuperTrend {
     fn period(&self) -> usize {

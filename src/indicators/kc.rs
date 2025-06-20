@@ -1,8 +1,10 @@
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{TaError, TaResult},
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
 };
 
 use super::{AverageTrueRange as Atr, ExponentialMovingAverage as Ema};
@@ -90,7 +92,22 @@ impl KeltnerChannel {
     }
 }
 
-impl Indicator for KeltnerChannel {}
+impl Indicator for KeltnerChannel {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(3) // Upper, Middle, Lower
+    }
+}
+
+impl fmt::Display for KeltnerChannel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "KC({}, {})",
+            self.ema.period(),
+            self.multiplier
+        )
+    }
+}
 
 impl Period for KeltnerChannel {
     fn period(&self) -> usize {

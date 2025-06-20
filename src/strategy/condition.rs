@@ -1,7 +1,7 @@
 use crate::{
-    error::TaResult,
-    strategy::MarketData,
-    traits::{Next, Period, Reset},
+    error::{TaError, TaResult},
+    strategy::{MarketData, StrategyError},
+    traits::{Indicator as IndicatorTrait, Next, Period, Reset},
     types::OutputType,
     Indicator,
 };
@@ -60,6 +60,31 @@ pub enum Condition {
 }
 
 impl Condition {
+    /// Validate the condition
+    pub fn validate(&self) -> TaResult<()> {
+        match self {
+            Condition::GreaterThan { indicator, value } | Condition::LessThan { indicator, value } | Condition::Equals { indicator, value } | Condition::GreaterThanOrEqual { indicator, value } | Condition::LessThanOrEqual { indicator, value } | Condition::CrossOver { indicator, value, .. } | Condition::CrossUnder { indicator, value, .. }=> {
+                match indicator.output_shape() == value.output_shape()? {
+                    true => Ok(()),
+                    false => Err(TaError::from(StrategyError::IncompatibleShapes {
+                        name: indicator.name(),
+                        indicator: indicator.output_shape(),
+                        value: value.output_shape()?,
+                    })),
+                }
+            }
+            Condition::And(conds) | Condition::Or(conds) => {
+                for c in conds {
+                    c.validate()?;
+                }
+                Ok(())
+            }
+            Condition::Not(c) => {
+                c.validate()
+            }
+        }
+    }
+
     /// Evaluate the condition against market data.
     pub fn evaluate(&mut self, data: &MarketData) -> TaResult<bool> {
         match self {

@@ -1,12 +1,15 @@
 // Stochastic Oscillator implementation for chipa-ta
 // Based on ta-rs and TA-Lib
 
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::error::TaResult;
 use crate::indicators::SimpleMovingAverage as Sma;
 use crate::traits::{Candle, Indicator};
 use crate::traits::{Next, Period, Reset};
+use crate::types::OutputShape;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct StochasticOscillator {
@@ -66,7 +69,21 @@ impl StochasticOscillator {
         })
     }
 }
-impl Indicator for StochasticOscillator {}
+impl Indicator for StochasticOscillator {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(2)
+    }
+}
+
+impl fmt::Display for StochasticOscillator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "STOCH({}, {})",
+            self.period, self.smoothing_period
+        )
+    }
+}
 
 impl<T: Candle> Next<&T> for StochasticOscillator {
     type Output = (f64, f64);

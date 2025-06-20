@@ -1,8 +1,10 @@
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TaResult,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -28,7 +30,17 @@ impl OnBalanceVolume {
     }
 }
 
-impl Indicator for OnBalanceVolume {}
+impl Indicator for OnBalanceVolume {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
+    }
+}
+
+impl fmt::Display for OnBalanceVolume {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "OBV")
+    }
+}
 
 impl Period for OnBalanceVolume {
     fn period(&self) -> usize {

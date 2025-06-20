@@ -1,8 +1,11 @@
 // Mean Absolute Error (MAE) indicator implementation for chipa-ta
 // Based on ta-rs and TA-Lib
 
+use core::fmt;
+
 use crate::error::{TaError, TaResult};
-use crate::traits::{Candle, Next, Period, Reset};
+use crate::traits::{Candle, Indicator, Next, Period, Reset};
+use crate::types::OutputShape;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -12,6 +15,26 @@ pub struct MeanAbsoluteError {
     pub values: Vec<f64>,
     #[serde(skip)]
     pub mean: f64,
+}
+
+impl Default for MeanAbsoluteError {
+    fn default() -> Self {
+        Self {
+            period: 14,
+            values: Vec::new(),
+            mean: 0.0,
+        }
+    }
+}
+
+impl fmt::Display for MeanAbsoluteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "MAE({})",
+            self.period
+        )
+    }
 }
 
 impl MeanAbsoluteError {
@@ -26,6 +49,12 @@ impl MeanAbsoluteError {
             values: Vec::new(),
             mean: 0.0,
         })
+    }
+}
+
+impl Indicator for MeanAbsoluteError {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(1)
     }
 }
 

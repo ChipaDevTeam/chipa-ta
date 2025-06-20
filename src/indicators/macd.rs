@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::TaResult,
     indicators::ema::ExponentialMovingAverage as Ema,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -74,7 +74,11 @@ pub struct MovingAverageConvergenceDivergenceOutput {
     pub histogram: f64,
 }
 
-impl Indicator for MovingAverageConvergenceDivergence {}
+impl Indicator for MovingAverageConvergenceDivergence {
+    fn output_shape(&self) -> OutputShape {
+        OutputShape::Shape(3) // MACD, Signal, Histogram
+    }
+}
 
 impl MovingAverageConvergenceDivergenceOutput {
     pub fn to_vec(&self) -> Vec<f64> {

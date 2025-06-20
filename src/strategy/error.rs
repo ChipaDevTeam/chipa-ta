@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::types::OutputShape;
+
 /// Errors that can occur during strategy validation or parsing.
 #[derive(Error, Debug, PartialEq)]
 pub enum StrategyError {
@@ -11,4 +13,6 @@ pub enum StrategyError {
     #[error("Sequence node must contain at least one child")]
     EmptySequence,
     // Potential future errors: InvalidIndicator, ParseError, etc.
+    #[error("Incompatible shapes: {indicator} vs {value} for '{name}'")]
+    IncompatibleShapes { name: String, indicator: OutputShape, value: OutputShape }
 }

@@ -1,5 +1,6 @@
-use crate::{error::TaResult, helper_types::Bar};
+use crate::{error::TaResult, helper_types::Bar, types::OutputShape};
 use core::{f64, fmt::Debug};
+use std::fmt::Display;
 
 pub trait Candle: Clone + Debug + Sized {
     fn open(&self) -> f64 {
@@ -35,7 +36,12 @@ pub trait Candle: Clone + Debug + Sized {
     }
 }
 
-pub trait Indicator: Clone + Debug + Reset + Default + PartialEq + Period {}
+pub trait Indicator: Clone + Debug + Reset + Default + PartialEq + Period + Display {
+    fn output_shape(&self) -> OutputShape;
+    fn name(&self) -> String {
+        self.to_string()
+    }
+}
 
 pub trait Next<T> {
     type Output;
