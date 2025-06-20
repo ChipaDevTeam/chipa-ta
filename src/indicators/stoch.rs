@@ -77,11 +77,7 @@ impl Indicator for StochasticOscillator {
 
 impl fmt::Display for StochasticOscillator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "STOCH({}, {})",
-            self.period, self.smoothing_period
-        )
+        write!(f, "STOCH({}, {})", self.period, self.smoothing_period)
     }
 }
 

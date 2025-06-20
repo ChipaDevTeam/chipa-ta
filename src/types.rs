@@ -8,7 +8,6 @@ use crate::{
     traits::{Candle, Period, Reset},
 };
 
-
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum OutputError {
     #[error("Type mismatch")]
@@ -22,7 +21,7 @@ pub enum OutputError {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum OutputShape {
     Shape(usize), // Normal shape, using enum in case in the future we want to add more shapes
-    Tensor(Vec<Box<OutputShape>>)
+    Tensor(Vec<Box<OutputShape>>),
 }
 
 impl fmt::Display for OutputShape {
@@ -42,7 +41,6 @@ impl fmt::Display for OutputShape {
         }
     }
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Statics {
@@ -77,7 +75,6 @@ impl PartialOrd<f64> for Statics {
     }
 }
 
-
 // Can you help me emprove the Queue struct? the goal is to make it like a Vec but with a fixed capacity that removes the oldest element when a new one is added beyond its capacity.
 // it also implements the Period and Reset traits, allowing it to be used in a similar way to Cycle.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -107,23 +104,25 @@ pub enum OutputType {
     Statics(Vec<Statics>),
 }
 
-
 impl OutputType {
     pub fn output_shape(&self) -> TaResult<OutputShape> {
         match self {
             OutputType::Single(_) => Ok(OutputShape::Shape(1)),
             OutputType::Array(arr) => OutputShape::Shape(arr.len()).validate(),
-            OutputType::Open | OutputType::Close | OutputType::High | OutputType::Low | OutputType::Volume => Ok(OutputShape::Shape(1)),
-            OutputType::Custom(vec) => {
-                OutputShape::Tensor(
-                    vec.iter()
-                        .map(|o| o.output_shape())
-                        .collect::<TaResult<Vec<OutputShape>>>()?
-                        .into_iter()
-                        .map(Box::new)
-                        .collect()
-                ).validate()
-            }
+            OutputType::Open
+            | OutputType::Close
+            | OutputType::High
+            | OutputType::Low
+            | OutputType::Volume => Ok(OutputShape::Shape(1)),
+            OutputType::Custom(vec) => OutputShape::Tensor(
+                vec.iter()
+                    .map(|o| o.output_shape())
+                    .collect::<TaResult<Vec<OutputShape>>>()?
+                    .into_iter()
+                    .map(Box::new)
+                    .collect(),
+            )
+            .validate(),
             OutputType::Static(_) => Ok(OutputShape::Shape(1)),
             OutputType::Statics(vec) => OutputShape::Shape(vec.len()).validate(),
         }
@@ -173,7 +172,9 @@ impl OutputShape {
                 }
                 Ok(self.clone())
             }
-            shape => Err(TaError::from(OutputError::InvalidOutputShape(shape.clone()))),
+            shape => Err(TaError::from(OutputError::InvalidOutputShape(
+                shape.clone(),
+            ))),
         }
     }
 }
@@ -231,6 +232,8 @@ impl TryFrom<OutputType> for Vec<f64> {
         }
     }
 }
+
+// TODO: Implement PartialEq and PartialOrd for OutputType using std::f64::EPSILON
 impl PartialOrd for OutputType {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
@@ -245,7 +248,7 @@ impl PartialOrd for OutputType {
                     for (a, b) in a.iter().zip(b.iter()) {
                         if let Some(ordering) = a.partial_cmp(b) {
                             equals.push(ordering);
-                        } 
+                        }
                     }
                     if equals.is_empty() {
                         return None;
@@ -256,10 +259,10 @@ impl PartialOrd for OutputType {
                     }
                 }
             }
-            (OutputType::Single(a), OutputType::Static(b)) | (OutputType::Static(b), OutputType::Single(a)) => {
-                b.partial_cmp(a)
-            }
-            (OutputType::Array(a), OutputType::Statics(b)) | (OutputType::Statics(b), OutputType::Array(a)) => {
+            (OutputType::Single(a), OutputType::Static(b))
+            | (OutputType::Static(b), OutputType::Single(a)) => b.partial_cmp(a),
+            (OutputType::Array(a), OutputType::Statics(b))
+            | (OutputType::Statics(b), OutputType::Array(a)) => {
                 if a.len() != b.len() {
                     None
                 } else {
@@ -283,7 +286,6 @@ impl PartialOrd for OutputType {
         }
     }
 }
-
 
 impl<T: Default + Clone> Queue<T> {
     pub fn new(period: usize) -> TaResult<Self> {

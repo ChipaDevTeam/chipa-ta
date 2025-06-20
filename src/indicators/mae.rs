@@ -29,11 +29,7 @@ impl Default for MeanAbsoluteError {
 
 impl fmt::Display for MeanAbsoluteError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "MAE({})",
-            self.period
-        )
+        write!(f, "MAE({})", self.period)
     }
 }
 

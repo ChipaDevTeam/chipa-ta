@@ -203,7 +203,7 @@ impl StrategyNode {
             StrategyNode::If {
                 then_branch,
                 else_branch,
-                condition
+                condition,
             } => {
                 condition.validate()?;
                 // Then branch must be valid
@@ -284,10 +284,7 @@ mod tests {
     fn test_rsi_strategy_action() {
         // RSI default period 14: first call returns 50 > 40 => Sell
         let mut strategy = StrategyNode::If {
-            condition: Condition::GreaterThan {
-                indicator: Indicator::rsi(14).unwrap(),
-                value: OutputType::from(40.0),
-            },
+            condition: Condition::greater_than(Indicator::rsi(14).unwrap(), OutputType::from(40.0)),
             then_branch: Box::new(StrategyNode::Action(Action::Sell)),
             else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
         };
@@ -314,14 +311,8 @@ mod tests {
     #[test]
     fn test_max_period_composed() {
         // Compose two If nodes with different RSI periods 10 and 20
-        let cond1 = Condition::GreaterThan {
-            indicator: Indicator::rsi(10).unwrap(),
-            value: OutputType::from(0.0),
-        };
-        let cond2 = Condition::LessThan {
-            indicator: Indicator::rsi(20).unwrap(),
-            value: OutputType::from(0.0),
-        };
+        let cond1 = Condition::greater_than(Indicator::rsi(10).unwrap(), OutputType::from(0.0));
+        let cond2 = Condition::less_than(Indicator::rsi(20).unwrap(), OutputType::from(0.0));
         let node1 = StrategyNode::If {
             condition: cond1,
             then_branch: Box::new(StrategyNode::Action(Action::Hold)),
@@ -349,10 +340,7 @@ mod tests {
 
         // If with both branches
         let node = StrategyNode::If {
-            condition: Condition::GreaterThan {
-                indicator: Indicator::rsi(5).unwrap(),
-                value: crate::types::OutputType::from(0.0),
-            },
+            condition: Condition::greater_than(Indicator::rsi(5).unwrap(), OutputType::from(0.0)),
             then_branch: Box::new(StrategyNode::Action(Action::Sell)),
             else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
         };
@@ -373,10 +361,7 @@ mod tests {
     fn test_validate_missing_else_branch() {
         // If without else should error
         let node = StrategyNode::If {
-            condition: Condition::LessThan {
-                indicator: Indicator::rsi(3).unwrap(),
-                value: crate::types::OutputType::from(0.0),
-            },
+            condition: Condition::less_than(Indicator::rsi(3).unwrap(), OutputType::from(0.0)),
             then_branch: Box::new(StrategyNode::Action(Action::Hold)),
             else_branch: None,
         };
@@ -402,16 +387,9 @@ mod tests {
             let long_entry = StrategyNode::If {
                 condition: Condition::And(vec![
                     // RSI crosses above 30
-                    Condition::CrossOver {
-                        indicator: Indicator::rsi(14)?,
-                        value: OutputType::from(30.0),
-                        prev_value: None,
-                    },
+                    Condition::cross_over(Indicator::rsi(14)?, OutputType::from(30.0)),
                     // Close > SMA(50)
-                    Condition::GreaterThan {
-                        indicator: Indicator::sma(50)?,
-                        value: OutputType::Close,
-                    },
+                    Condition::greater_than(Indicator::sma(50)?, OutputType::Close),
                     // NOTE: Close < Previous Close not supported in Condition
                     // NOTE: No open position not supported in Condition
                 ]),
@@ -423,16 +401,9 @@ mod tests {
             let short_entry = StrategyNode::If {
                 condition: Condition::And(vec![
                     // RSI crosses below 70
-                    Condition::CrossUnder {
-                        indicator: Indicator::rsi(14)?,
-                        value: OutputType::from(70.0),
-                        prev_value: None,
-                    },
+                    Condition::cross_under(Indicator::rsi(14)?, OutputType::from(70.0)),
                     // Close < SMA(50)
-                    Condition::LessThan {
-                        indicator: Indicator::sma(50)?,
-                        value: OutputType::Close,
-                    },
+                    Condition::less_than(Indicator::sma(50)?, OutputType::Close),
                     // NOTE: Close > Previous Close not supported in Condition
                     // NOTE: No open position not supported in Condition
                 ]),
@@ -538,10 +509,7 @@ mod tests {
         // ************************************************************************
 
         // Strong Buy condition: RSI is showing very strong momentum.
-        let strong_buy_condition = Condition::GreaterThan {
-            indicator: Indicator::rsi(14)?,
-            value: OutputType::Single(65.0),
-        };
+        let strong_buy_condition = Condition::greater_than(Indicator::rsi(14)?, OutputType::Single(65.0));
 
         // Base Buy conditions:
         // 1. Price is above the medium-term trend (SMA50).
@@ -550,22 +518,10 @@ mod tests {
         // 4. Not in overbought territory (Williams %R < -20).
         let buy_conditions = Condition::And(vec![
             // Using LessThan because we want to check: indicator < value, which is SMA(50) < Close
-            Condition::LessThan {
-                indicator: Indicator::sma(50)?,
-                value: OutputType::Close,
-            },
-            Condition::LessThan {
-                indicator: Indicator::sma(200)?,
-                value: OutputType::Close,
-            },
-            Condition::GreaterThan {
-                indicator: Indicator::rsi(14)?,
-                value: OutputType::Single(55.0),
-            },
-            Condition::LessThan {
-                indicator: Indicator::williams_r(14)?,
-                value: OutputType::Single(-20.0),
-            },
+            Condition::less_than(Indicator::sma(50)?, OutputType::Close),
+            Condition::less_than(Indicator::sma(200)?, OutputType::Close),
+            Condition::greater_than(Indicator::rsi(14)?, OutputType::Single(55.0)),
+            Condition::less_than(Indicator::williams_r(14)?, OutputType::Single(-20.0)),
         ]);
 
         // Buy-side strategy tree:
@@ -585,10 +541,7 @@ mod tests {
         // ************************************************************************
 
         // Strong Sell condition: RSI is showing very strong bearish momentum.
-        let strong_sell_condition = Condition::LessThan {
-            indicator: Indicator::rsi(14)?,
-            value: OutputType::Single(35.0),
-        };
+        let strong_sell_condition = Condition::less_than(Indicator::rsi(14)?, OutputType::Single(35.0));
 
         // Base Sell conditions:
         // 1. Price is below the medium-term trend (SMA50).
@@ -597,22 +550,10 @@ mod tests {
         // 4. Not in oversold territory (Williams %R > -80).
         let sell_conditions = Condition::And(vec![
             // Using GreaterThan because we want to check: indicator > value, which is SMA(50) > Close
-            Condition::GreaterThan {
-                indicator: Indicator::sma(50)?,
-                value: OutputType::Close,
-            },
-            Condition::GreaterThan {
-                indicator: Indicator::sma(200)?,
-                value: OutputType::Close,
-            },
-            Condition::LessThan {
-                indicator: Indicator::rsi(14)?,
-                value: OutputType::Single(45.0),
-            },
-            Condition::GreaterThan {
-                indicator: Indicator::williams_r(14)?,
-                value: OutputType::Single(-80.0),
-            },
+            Condition::greater_than(Indicator::sma(50)?, OutputType::Close),
+            Condition::greater_than(Indicator::sma(200)?, OutputType::Close),
+            Condition::less_than(Indicator::rsi(14)?, OutputType::Single(45.0)),
+            Condition::greater_than(Indicator::williams_r(14)?, OutputType::Single(-80.0)),
         ]);
 
         // Sell-side strategy tree:
@@ -680,84 +621,55 @@ mod tests {
         // --- LONG CONDITIONS (BUY) ---
         let long_conditions = Condition::And(vec![
             // 1. Major trend is up: Price is above the long-term moving average.
-            Condition::LessThan {
-                indicator: ema_long.clone(),
-                value: OutputType::Close, // equivalent to Close > EMA(200)
-            },
+            Condition::less_than(ema_long.clone(), OutputType::Close),
             // 2. Short-term trend is also up: Price is above the short-term moving average.
-            Condition::LessThan {
-                indicator: ema_short.clone(),
-                value: OutputType::Close, // equivalent to Close > EMA(50)
-            },
+            Condition::less_than(ema_short.clone(), OutputType::Close),
             // 3. Bullish momentum is confirmed: RSI is in the bullish zone.
-            Condition::GreaterThan {
-                indicator: rsi.clone(),
-                value: OutputType::Single(55.0),
-            },
+            Condition::greater_than(rsi.clone(), OutputType::Single(55.0)),
             // 4. Awesome Oscillator confirms bullish momentum.
-            Condition::GreaterThan {
-                indicator: ao.clone(),
-                value: OutputType::Single(0.0),
-            },
+            Condition::greater_than(ao.clone(), OutputType::Single(0.0)),
             // 5. MACD line is above its signal line.
-            Condition::GreaterThan {
-                indicator: macd.clone(),
-                value: OutputType::Custom(vec![OutputType::Single(0.0), OutputType::Static(Statics::True), OutputType::Static(Statics::True)]), // equivalent to MACD Line > Signal Line
-            },
+            Condition::greater_than(macd.clone(), OutputType::Custom(vec![
+                OutputType::Single(0.0),
+                OutputType::Static(Statics::True),
+                OutputType::Static(Statics::True),
+            ])), // equivalent to MACD Line > Signal Line
             // 6. Price is near the lower Bollinger Band.
-            Condition::LessThan {
-                indicator: bb.clone(),
-                value: OutputType::Custom(vec![OutputType::Static(Statics::True), OutputType::Static(Statics::True), OutputType::Close]), // equivalent to Close < BB Lower Band
-            },
+            Condition::less_than(bb.clone(), OutputType::Custom(vec![
+                OutputType::Static(Statics::True),
+                OutputType::Static(Statics::True),
+                OutputType::Close,
+            ])), // equivalent to Close < BB Lower Band
             // 7. SuperTrend is bullish.
-            Condition::LessThan {
-                indicator: super_trend.clone(),
-                value: OutputType::Custom(vec![OutputType::Close, OutputType::Close]), // equivalent to Close > SuperTrend
-            },
+            Condition::less_than(super_trend.clone(), OutputType::Custom(vec![OutputType::Close, OutputType::Close])), // equivalent to Close > SuperTrend
         ]);
 
         // --- SHORT CONDITIONS (SELL) ---
         let short_conditions = Condition::And(vec![
             // 1. Major trend is down: Price is below the long-term moving average.
-            Condition::GreaterThan {
-                indicator: ema_long,
-                value: OutputType::Close, // equivalent to Close < EMA(200)
-            },
+            Condition::greater_than(ema_long, OutputType::Close), // equivalent to Close < EMA(200)
             // 2. Short-term trend is also down: Price is below the short-term moving average.
-            Condition::GreaterThan {
-                indicator: ema_short,
-                value: OutputType::Close, // equivalent to Close < EMA(50)
-            },
+            Condition::greater_than(ema_short, OutputType::Close), // equivalent to Close < EMA(50)
             // 3. Bearish momentum is confirmed: RSI is in the bearish zone.
-            Condition::LessThan {
-                indicator: rsi,
-                value: OutputType::Single(45.0),
-            },
+            Condition::less_than(rsi, OutputType::Single(45.0)),
             // 4. Awesome Oscillator confirms bearish momentum.
-            Condition::LessThan {
-                indicator: ao,
-                value: OutputType::Single(0.0),
-            },
+            Condition::less_than(ao, OutputType::Single(0.0)),
             // 5. MACD line is below its signal line.
-            Condition::LessThan {
-                indicator: macd,
-                value: OutputType::Array(vec![0.0, 0.0, 0.0]),
-            },
+            Condition::less_than(macd, OutputType::Array(vec![0.0, 0.0, 0.0])),
             // 6. Price is near the upper Bollinger Band.
-            Condition::GreaterThan {
-                indicator: bb,
-                value: OutputType::Custom(vec![OutputType::Static(Statics::True), OutputType::Close, OutputType::Static(Statics::True)]), // equivalent to Close > BB Upper Band
-            },
+            Condition::greater_than(bb, OutputType::Custom(vec![
+                    OutputType::Static(Statics::True),
+                    OutputType::Close,
+                    OutputType::Static(Statics::True),
+                ])), // equivalent to Close > BB Upper Band
             // 7. SuperTrend is bearish.
-            Condition::GreaterThan {
-                indicator: super_trend,
-                value: OutputType::Custom(vec![OutputType::Close, OutputType::Close]), // equivalent to Close < SuperTrend
-            },
+            Condition::greater_than(super_trend, OutputType::Custom(vec![OutputType::Close, OutputType::Close])), // equivalent to Close < SuperTrend
             // 8. Price is near the Keltner Channel upper band.
-            Condition::GreaterThan {
-                indicator: kc,
-                value: OutputType::Custom(vec![OutputType::Close, OutputType::Static(Statics::True), OutputType::Static(Statics::True)]), // equivalent to Close > KC Upper Band
-            },
+            Condition::greater_than(kc, OutputType::Custom(vec![
+                OutputType::Close,
+                OutputType::Static(Statics::True),
+                OutputType::Static(Statics::True),
+            ])), // equivalent to Close > KC Upper Band
         ]);
 
         // --- STRATEGY TREE ---
@@ -822,43 +734,21 @@ mod tests {
         // --- LONG CONDITIONS (BUY) ---
         let long_conditions = Condition::And(vec![
             // 1. RSI crosses above the oversold level (30).
-            Condition::CrossOver {
-                indicator: rsi.clone(),
-                value: OutputType::Single(30.0),
-                prev_value: None,
-            },
+            Condition::cross_over(rsi.clone(), OutputType::Single(30.0)),
             // 2. Awesome Oscillator is positive, indicating bullish momentum.
-            Condition::GreaterThan {
-                indicator: ao.clone(),
-                value: OutputType::Single(0.0),
-            },
+            Condition::greater_than(ao.clone(), OutputType::Single(0.0)),
             // 3. Price is above the 50-period EMA, confirming an uptrend.
-            Condition::LessThan {
-                // This means ema < close
-                indicator: ema.clone(),
-                value: OutputType::Close,
-            },
+            Condition::less_than(ema.clone(), OutputType::Close),
         ]);
 
         // --- SHORT CONDITIONS (SELL) ---
         let short_conditions = Condition::And(vec![
             // 1. RSI crosses below the overbought level (70).
-            Condition::CrossUnder {
-                indicator: rsi,
-                value: OutputType::Single(70.0),
-                prev_value: None,
-            },
+            Condition::cross_under(rsi, OutputType::Single(70.0)),
             // 2. Awesome Oscillator is negative, indicating bearish momentum.
-            Condition::LessThan {
-                indicator: ao,
-                value: OutputType::Single(0.0),
-            },
+            Condition::less_than(ao, OutputType::Single(0.0)),
             // 3. Price is below the 50-period EMA, confirming a downtrend.
-            Condition::GreaterThan {
-                // This means ema > close
-                indicator: ema,
-                value: OutputType::Close,
-            },
+            Condition::greater_than(ema, OutputType::Close),
         ]);
 
         // --- STRATEGY TREE ---
@@ -912,39 +802,21 @@ mod tests {
         // --- LONG CONDITIONS ---
         let long_conditions = Condition::And(vec![
             // 1. SuperTrend is bullish (Close > SuperTrend value)
-            Condition::LessThan {
-                indicator: super_trend.clone(),
-                value: OutputType::Close,
-            },
+            Condition::less_than(super_trend.clone(), OutputType::Close),
             // 2. RSI confirms bullish momentum
-            Condition::GreaterThan {
-                indicator: rsi.clone(),
-                value: OutputType::Single(50.0),
-            },
+            Condition::greater_than(rsi.clone(), OutputType::Single(50.0)),
             // 3. Long-term trend is bullish
-            Condition::LessThan {
-                indicator: ema_long.clone(),
-                value: OutputType::Close,
-            },
+            Condition::less_than(ema_long.clone(), OutputType::Close),
         ]);
 
         // --- SHORT CONDITIONS ---
         let short_conditions = Condition::And(vec![
             // 1. SuperTrend is bearish (Close < SuperTrend value)
-            Condition::GreaterThan {
-                indicator: super_trend,
-                value: OutputType::Close,
-            },
+            Condition::greater_than(super_trend, OutputType::Close),
             // 2. RSI confirms bearish momentum
-            Condition::LessThan {
-                indicator: rsi,
-                value: OutputType::Single(50.0),
-            },
+            Condition::less_than(rsi, OutputType::Single(50.0)),
             // 3. Long-term trend is bearish
-            Condition::GreaterThan {
-                indicator: ema_long,
-                value: OutputType::Close,
-            },
+            Condition::greater_than(ema_long, OutputType::Close),
         ]);
 
         // --- STRATEGY TREE ---

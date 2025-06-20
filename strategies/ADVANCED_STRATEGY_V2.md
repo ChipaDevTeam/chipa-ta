@@ -11,105 +11,49 @@ This document outlines a sophisticated trading strategy that leverages a combina
   - **Trend**: Exponential Moving Averages (EMA) - 50-period and 200-period.
   - **Momentum**: Relative Strength Index (RSI) - 14-period.
   - **Oscillator**: Awesome Oscillator (AO) - default periods (5, 34).
+  - **MACD**, **Bollinger Bands**, **Keltner Channel**, **SuperTrend**.
 
 ## II. Strategy Logic – Entry and Exit Conditions
 
-### A. Long Entry Conditions (Strong Buy Signal)
+### A. Long Entry Conditions (Buy Signal)
 
 All of the following conditions must be met simultaneously:
 
-1.  **Primary Trend Confirmation (Bullish)**:
+1. **Major trend is up**: Price is above the long-term EMA (Close > EMA(200)).
+2. **Short-term trend is up**: Price is above the short-term EMA (Close > EMA(50)).
+3. **Bullish momentum**: RSI > 55.
+4. **AO confirms bullishness**: AO > 0.
+5. **MACD confirms bullishness**: MACD line > Signal line (see note below).
+6. **Price is near the lower Bollinger Band**: Close < BB lower band (see note below).
+7. **SuperTrend is bullish**: Close > SuperTrend value.
 
-    - The current price is **above** the 200-period EMA, indicating a long-term uptrend.
-    - The 50-period EMA is **above** the 200-period EMA (a "golden cross" formation), confirming sustained bullish momentum.
-
-2.  **Momentum Confirmation (Bullish)**:
-
-    - The RSI is **above 55**, signaling strong bullish momentum and that the asset is not yet overbought.
-
-3.  **Oscillator Confirmation (Bullish)**:
-
-    - The Awesome Oscillator (AO) is **above the zero line**, indicating that short-term momentum is greater than long-term momentum.
-
-4.  **MACD Confirmation (Bullish)**:
-
-    - The MACD line is **above** its signal line, indicating bullish momentum.
-
-5.  **Bollinger Bands (BB) Confirmation (Bullish)**:
-
-    - The price is near the **lower Bollinger Band**, suggesting a potential reversal to the upside.
-
-6.  **Keltner Channel (KC) Confirmation (Bullish)**:
-
-    - The price is near the **lower Keltner Channel band**, indicating a possible bounce.
-
-7.  **SuperTrend Confirmation (Bullish)**:
-    - The SuperTrend is **bullish** (price is above the SuperTrend line), confirming the uptrend.
-
-### B. Short Entry Conditions (Strong Sell Signal)
+### B. Short Entry Conditions (Sell Signal)
 
 All of the following conditions must be met simultaneously:
 
-1.  **Primary Trend Confirmation (Bearish)**:
+1. **Major trend is down**: Price is below the long-term EMA (Close < EMA(200)).
+2. **Short-term trend is down**: Price is below the short-term EMA (Close < EMA(50)).
+3. **Bearish momentum**: RSI < 45.
+4. **AO confirms bearishness**: AO < 0.
+5. **MACD confirms bearishness**: MACD line < Signal line (see note below).
+6. **Price is near the upper Bollinger Band**: Close > BB upper band (see note below).
+7. **SuperTrend is bearish**: Close < SuperTrend value.
+8. **Price is near the Keltner Channel upper band**: Close > KC upper band (see note below).
 
-    - The current price is **below** the 200-period EMA, indicating a long-term downtrend.
-    - The 50-period EMA is **below** the 200-period EMA (a "death cross" formation), confirming sustained bearish momentum.
+**Note:**
 
-2.  **Momentum Confirmation (Bearish)**:
-
-    - The RSI is **below 45**, signaling strong bearish momentum and that the asset is not yet oversold.
-
-3.  **Oscillator Confirmation (Bearish)**:
-
-    - The Awesome Oscillator (AO) is **below the zero line**, indicating that short-term momentum is weaker than long-term momentum.
-
-4.  **MACD Confirmation (Bearish)**:
-
-    - The MACD line is **below** its signal line, indicating bearish momentum.
-
-5.  **Bollinger Bands (BB) Confirmation (Bearish)**:
-
-    - The price is near the **upper Bollinger Band**, suggesting a potential reversal to the downside.
-
-6.  **Keltner Channel (KC) Confirmation (Bearish)**:
-
-    - The price is near the **upper Keltner Channel band**, indicating a possible drop.
-
-7.  **SuperTrend Confirmation (Bearish)**:
-    - The SuperTrend is **bearish** (price is below the SuperTrend line), confirming the downtrend.
+- For indicators with multiple outputs (e.g., MACD, BB, KC), the actual implementation uses `OutputType::Custom` to select the correct output index or combination for comparison.
+- The code below reflects the actual output shapes and how the strategy is implemented in Rust.
 
 ### C. Exit Conditions
 
-- **For a Long Position**: The position is held until the "Short Entry Conditions" are met, signaling a complete reversal of the market structure.
+- **For a Long Position**: The position is held until the "Short Entry Conditions" are met.
 - **For a Short Position**: The position is held until the "Long Entry Conditions" are met.
-- **No Signal**: If neither the long nor short conditions are met, the strategy remains in a **Hold** state, taking no new action.
+- **No Signal**: If neither the long nor short conditions are met, the strategy remains in a **Hold** state.
 
-## III. Additional Indicators
+## III. Strategy Implementation
 
-To further enhance the robustness of the strategy, the following indicators have been integrated:
-
-1. **MACD (Moving Average Convergence Divergence)**:
-
-   - Long Condition: MACD line is above its signal line.
-   - Short Condition: MACD line is below its signal line.
-
-2. **Bollinger Bands (BB)**:
-
-   - Long Condition: Price is near the lower Bollinger Band.
-   - Short Condition: Price is near the upper Bollinger Band.
-
-3. **Keltner Channel (KC)**:
-
-   - Long Condition: Price is near the lower Keltner Channel band.
-   - Short Condition: Price is near the upper Keltner Channel band.
-
-4. **SuperTrend**:
-   - Long Condition: SuperTrend is bullish (price is above the SuperTrend line).
-   - Short Condition: SuperTrend is bearish (price is below the SuperTrend line).
-
-## IV. Strategy Implementation
-
-The strategy is implemented as a composable `StrategyNode` in Rust, leveraging the `Condition` enum to define complex logical expressions. Below is the Rust code for the strategy:
+Below is the Rust code for the strategy, matching the implementation in `test_advanced_confluence_strategy_v2`:
 
 ```rust
 use chipa_ta::{
@@ -121,15 +65,10 @@ use chipa_ta::{
 
 fn advanced_strategy_v2() -> TaResult<StrategyNode> {
     // --- INDICATORS ---
-    // Trend
     let ema_long = Indicator::ema(200)?;
     let ema_short = Indicator::ema(50)?;
-
-    // Momentum
     let rsi = Indicator::rsi(14)?;
-    let ao = Indicator::ao(5, 34)?; // Default periods for Awesome Oscillator
-
-    // Additional Indicators
+    let ao = Indicator::ao(5, 34)?;
     let macd = Indicator::macd(12, 26, 9)?;
     let bb = Indicator::bb(20, 2.0)?;
     let kc = Indicator::kc(20, 2.0)?;
@@ -137,99 +76,116 @@ fn advanced_strategy_v2() -> TaResult<StrategyNode> {
 
     // --- LONG CONDITIONS (BUY) ---
     let long_conditions = Condition::And(vec![
-        // 1. Major trend is up: Price is above the long-term moving average.
+        // 1. Major trend is up: Price is above the long-term EMA.
         Condition::LessThan {
             indicator: ema_long.clone(),
-            value: OutputType::Close, // equivalent to Close > EMA(200)
+            value: OutputType::Close,
         },
-        // 2. Short-term trend is also up: Price is above the short-term moving average.
+        // 2. Short-term trend is up: Price is above the short-term EMA.
         Condition::LessThan {
             indicator: ema_short.clone(),
-            value: OutputType::Close, // equivalent to Close > EMA(50)
+            value: OutputType::Close,
         },
-        // 3. Bullish momentum is confirmed: RSI is in the bullish zone.
+        // 3. Bullish momentum: RSI > 55.
         Condition::GreaterThan {
             indicator: rsi.clone(),
             value: OutputType::Single(55.0),
         },
-        // 4. Awesome Oscillator confirms bullish momentum.
+        // 4. AO > 0.
         Condition::GreaterThan {
             indicator: ao.clone(),
             value: OutputType::Single(0.0),
         },
-        // 5. MACD confirms bullish momentum.
+        // 5. MACD line > Signal line.
         Condition::GreaterThan {
             indicator: macd.clone(),
-            value: OutputType::Single(0.0),
+            value: OutputType::Custom(vec![
+                OutputType::Single(0.0),
+                OutputType::Static(Statics::True),
+                OutputType::Static(Statics::True),
+            ]), // Custom output shape for MACD
         },
-        // 6. Price is near the lower Bollinger Band.
+        // 6. Close < BB lower band.
         Condition::LessThan {
             indicator: bb.clone(),
-            value: OutputType::Close,
+            value: OutputType::Custom(vec![
+                OutputType::Static(Statics::True),
+                OutputType::Static(Statics::True),
+                OutputType::Close,
+            ]), // Custom output shape for BB
         },
-        // 7. Price is near the lower Keltner Channel band.
-        Condition::LessThan {
-            indicator: kc.clone(),
-            value: OutputType::Close,
-        },
-        // 8. SuperTrend is bullish.
+        // 7. SuperTrend is bullish: Close > SuperTrend value.
         Condition::LessThan {
             indicator: super_trend.clone(),
-            value: OutputType::Close,
+            value: OutputType::Custom(vec![
+                OutputType::Close,
+                OutputType::Close,
+            ]), // Custom output shape for SuperTrend
         },
     ]);
 
     // --- SHORT CONDITIONS (SELL) ---
     let short_conditions = Condition::And(vec![
-        // 1. Major trend is down: Price is below the long-term moving average.
+        // 1. Major trend is down: Price is below the long-term EMA.
         Condition::GreaterThan {
             indicator: ema_long,
-            value: OutputType::Close, // equivalent to Close < EMA(200)
+            value: OutputType::Close,
         },
-        // 2. Short-term trend is also down: Price is below the short-term moving average.
+        // 2. Short-term trend is down: Price is below the short-term EMA.
         Condition::GreaterThan {
             indicator: ema_short,
-            value: OutputType::Close, // equivalent to Close < EMA(50)
+            value: OutputType::Close,
         },
-        // 3. Bearish momentum is confirmed: RSI is in the bearish zone.
+        // 3. Bearish momentum: RSI < 45.
         Condition::LessThan {
             indicator: rsi,
             value: OutputType::Single(45.0),
         },
-        // 4. Awesome Oscillator confirms bearish momentum.
+        // 4. AO < 0.
         Condition::LessThan {
             indicator: ao,
             value: OutputType::Single(0.0),
         },
-        // 5. MACD confirms bearish momentum.
+        // 5. MACD line < Signal line.
         Condition::LessThan {
             indicator: macd,
-            value: OutputType::Single(0.0),
+            value: OutputType::Array(vec![0.0, 0.0, 0.0]), // Custom output shape for MACD
         },
-        // 6. Price is near the upper Bollinger Band.
+        // 6. Close > BB upper band.
         Condition::GreaterThan {
             indicator: bb,
-            value: OutputType::Close,
+            value: OutputType::Custom(vec![
+                OutputType::Static(Statics::True),
+                OutputType::Close,
+                OutputType::Static(Statics::True),
+            ]), // Custom output shape for BB
         },
-        // 7. Price is near the upper Keltner Channel band.
-        Condition::GreaterThan {
-            indicator: kc,
-            value: OutputType::Close,
-        },
-        // 8. SuperTrend is bearish.
+        // 7. SuperTrend is bearish: Close < SuperTrend value.
         Condition::GreaterThan {
             indicator: super_trend,
-            value: OutputType::Close,
+            value: OutputType::Custom(vec![
+                OutputType::Close,
+                OutputType::Close,
+            ]), // Custom output shape for SuperTrend
+        },
+        // 8. Close > KC upper band.
+        Condition::GreaterThan {
+            indicator: kc,
+            value: OutputType::Custom(vec![
+                OutputType::Close,
+                OutputType::Static(Statics::True),
+                OutputType::Static(Statics::True),
+            ]), // Custom output shape for KC
         },
     ]);
 
     // --- STRATEGY TREE ---
     let strategy = StrategyNode::If {
         condition: long_conditions,
-        then_branch: Box::new(StrategyNode::Action(Action::StrongBuy)),
+        then_branch: Box::new(StrategyNode::Action(Action::Buy)),
         else_branch: Some(Box::new(StrategyNode::If {
             condition: short_conditions,
-            then_branch: Box::new(StrategyNode::Action(Action::StrongSell)),
+            then_branch: Box::new(StrategyNode::Action(Action::Sell)),
             else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
         })),
     };
@@ -289,4 +245,8 @@ fn test_advanced_confluence_strategy_v2() -> TaResult<()> {
 }
 ```
 
-This implementation defines a nested `If` structure. The outer `If` checks for the `long_conditions`. If they are met, it produces a `StrongBuy` action. If not, it proceeds to the `else_branch`, which contains another `If` node to check for the `short_conditions`. This ensures a clear, hierarchical evaluation of market conditions.
+**Key Implementation Notes:**
+
+- For multi-output indicators (MACD, BB, KC, SuperTrend), use `OutputType::Custom` or `OutputType::Array` to select the correct output for comparison.
+- The strategy is a nested `If` tree: first checks long conditions, then short, else Hold.
+- This matches the actual test and implementation in your Rust codebase.

@@ -68,7 +68,6 @@ impl Indicator for WilliamsR {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }
-
 }
 
 impl fmt::Display for WilliamsR {

@@ -38,7 +38,6 @@ impl Indicator for SuperTrend {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(2)
     }
-
 }
 
 impl std::fmt::Display for SuperTrend {

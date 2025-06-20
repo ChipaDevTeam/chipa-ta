@@ -26,7 +26,16 @@ impl PartialEq for TaError {
         match (self, other) {
             (TaError::InvalidParameter(a), TaError::InvalidParameter(b)) => a == b,
             (TaError::EmptyIterator(a), TaError::EmptyIterator(b)) => a == b,
-            (TaError::IncorrectOutputType { expected: a, actual: b }, TaError::IncorrectOutputType { expected: c, actual: d }) => a == c && b == d,
+            (
+                TaError::IncorrectOutputType {
+                    expected: a,
+                    actual: b,
+                },
+                TaError::IncorrectOutputType {
+                    expected: c,
+                    actual: d,
+                },
+            ) => a == c && b == d,
             (TaError::Unexpected(a), TaError::Unexpected(b)) => a == b,
             (TaError::Cmp(a), TaError::Cmp(b)) => a == b,
             (TaError::Strategy(a), TaError::Strategy(b)) => a == b,

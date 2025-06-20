@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{TaError, TaResult},
-    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
+    traits::{Candle, Indicator, Next, Period, Reset},
+    types::OutputShape,
 };
 
 #[derive(Serialize, Deserialize)]

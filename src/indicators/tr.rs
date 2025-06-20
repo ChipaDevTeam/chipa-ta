@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::TaResult,
     helper::max3,
-    traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape,
+    traits::{Candle, Indicator, Next, Period, Reset},
+    types::OutputShape,
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
@@ -18,7 +19,6 @@ impl Indicator for TrueRange {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }
-
 }
 
 impl TrueRange {

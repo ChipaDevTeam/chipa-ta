@@ -329,24 +329,28 @@ impl fmt::Display for NoneIndicator {
 
 impl fmt::Display for Indicator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Indicator: {}", match self {
-            Self::None(i) => i.name(),
-            Self::Ao(i) => i.name(),
-            Self::Atr(i) => i.name(),
-            Self::Bb(i) => i.name(),
-            Self::Ema(i) => i.name(),
-            Self::Kc(i) => i.name(),
-            Self::Macd(i) => i.name(),
-            Self::Mae(i) => i.name(),
-            Self::Obv(i) => i.name(),
-            Self::Rsi(i) => i.name(),
-            Self::Sd(i) => i.name(),
-            Self::Sma(i) => i.name(),
-            Self::Stoch(i) => i.name(),
-            Self::SuperTrend(i) => i.name(),
-            Self::Tr(i) => i.name(),
-            Self::WilliamsR(i) => i.name(),
-        })
+        write!(
+            f,
+            "Indicator: {}",
+            match self {
+                Self::None(i) => i.name(),
+                Self::Ao(i) => i.name(),
+                Self::Atr(i) => i.name(),
+                Self::Bb(i) => i.name(),
+                Self::Ema(i) => i.name(),
+                Self::Kc(i) => i.name(),
+                Self::Macd(i) => i.name(),
+                Self::Mae(i) => i.name(),
+                Self::Obv(i) => i.name(),
+                Self::Rsi(i) => i.name(),
+                Self::Sd(i) => i.name(),
+                Self::Sma(i) => i.name(),
+                Self::Stoch(i) => i.name(),
+                Self::SuperTrend(i) => i.name(),
+                Self::Tr(i) => i.name(),
+                Self::WilliamsR(i) => i.name(),
+            }
+        )
     }
 }
 
@@ -420,7 +424,6 @@ impl IndicatorTrait for Indicator {
             Self::WilliamsR(indicator) => indicator.output_shape(),
         }
     }
-
 }
 
 impl<T: Candle> Next<&T> for Indicator {
@@ -846,9 +849,5 @@ impl Indicator {
     }
 }
 
-
 #[cfg(test)]
-mod tests {
-
-    
-}
+mod tests {}

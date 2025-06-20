@@ -14,5 +14,13 @@ pub enum StrategyError {
     EmptySequence,
     // Potential future errors: InvalidIndicator, ParseError, etc.
     #[error("Incompatible shapes: {indicator} vs {value} for '{name}'")]
-    IncompatibleShapes { name: String, indicator: OutputShape, value: OutputShape }
+    IncompatibleShapes {
+        name: String,
+        indicator: OutputShape,
+        value: OutputShape,
+    },
+    #[error("Invalid indicator period: {period}")]
+    InvalidIndicatorPeriod {
+        period: usize,
+    },
 }
