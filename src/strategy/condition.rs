@@ -19,18 +19,67 @@ pub enum Operator {
 }
 
 /// Logical conditions for strategy execution.
+/// This enum represents various conditions that can be used to control the flow of a trading strategy.
+/// It includes comparisons between indicators and values, logical operations (AND, OR, NOT), and allows for complex condition trees.
+/// # Methods
+/// 
+/// - `validate(&self) -> TaResult<()>`  
+///   Validates the condition, ensuring that indicator periods are valid and output shapes are compatible.
+/// 
+/// - `evaluate(&mut self, data: &MarketData) -> TaResult<bool>`  
+///   Evaluates the condition against provided market data, returning whether the condition is met.
+/// 
+/// - `max_period(&self) -> Option<usize>`  
+///   Returns the maximum indicator period contained in the condition, or `None` if there are no indicators.
+/// 
+/// - `ne(condition: Condition) -> Condition`  
+///   Constructs a negated (`Not`) condition.
+/// 
+/// - `and(conditions: Vec<Condition>) -> Condition`  
+///   Constructs a logical `And` condition from a list of conditions.
+/// 
+/// - `or(conditions: Vec<Condition>) -> Condition`  
+///   Constructs a logical `Or` condition from a list of conditions.
+/// 
+/// - `value(indicator: Indicator, value: OutputType, operator: Operator) -> Condition`  
+///   Constructs a value-based condition comparing an indicator to a value using the specified operator.
+/// 
+/// - `indicator(left: Indicator, right: Indicator, operator: Operator) -> Condition`  
+///   Constructs a condition comparing two indicators using the specified operator.
+/// 
+/// - `greater_than(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator is greater than a value.
+/// 
+/// - `less_than(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator is less than a value.
+/// 
+/// - `equals(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator equals a value.
+/// 
+/// - `greater_than_or_equal(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator is greater than or equal to a value.
+/// 
+/// - `less_than_or_equal(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator is less than or equal to a value.
+/// 
+/// - `cross_over(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator crosses over a value.
+/// 
+/// - `cross_under(indicator: Indicator, value: OutputType) -> Condition`  
+///   Constructs a condition checking if an indicator crosses under a value.
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Condition {
     /// Compares an indicator to a value using an operator.
     Value {
-        indicator: Indicator,
+        indicator: Box<Indicator>,
         value: OutputType,
         operator: Operator,
     },
     /// Compares two indicators using an operator.
     Indicator {
-        left: Indicator,
-        right: Indicator,
+        left: Box<Indicator>,
+        right: Box<Indicator>,
         operator: Operator,
     },
     /// Logical AND of multiple conditions.
@@ -144,17 +193,17 @@ impl Condition {
     }
 
     pub fn value(indicator: Indicator, value: OutputType, operator: Operator) -> Condition {
-        Condition::Value { indicator, value, operator }
+        Condition::Value { indicator: Box::new(indicator), value, operator }
     }
 
     pub fn indicator(left: Indicator, right: Indicator, operator: Operator) -> Condition {
-        Condition::Indicator { left, right, operator }
+        Condition::Indicator { left: Box::new(left), right: Box::new(right), operator }
     }
 
     pub fn greater_than(indicator: Indicator, value: OutputType) -> Condition {
         Condition::value(indicator, value, Operator::GreaterThan)
     }
-    
+
     pub fn less_than(indicator: Indicator, value: OutputType) -> Condition {
         Condition::value(indicator, value, Operator::LessThan)
     }

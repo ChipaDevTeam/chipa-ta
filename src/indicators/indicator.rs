@@ -2,11 +2,13 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use crate::indicators::alligator::Alligator;
 use crate::indicators::ao::AwesomeOscillator;
 use crate::indicators::kc::KeltnerChannel;
 use crate::indicators::obv::OnBalanceVolume;
 use crate::indicators::sd::StandardDeviation;
 use crate::indicators::williams_r::WilliamsR;
+use crate::indicators::smma::SmoothedMovingAverage;
 use crate::indicators::{BollingerBands, MeanAbsoluteError, StochasticOscillator};
 use crate::traits::Indicator as IndicatorTrait;
 use crate::types::OutputShape;
@@ -77,6 +79,20 @@ pub enum Indicator {
     ///
     /// **Output**: Single value (same as input)
     None(NoneIndicator),
+
+    /// **Alligator** - A trend-following indicator with three smoothed moving averages.
+    /// 
+    /// Consists of:
+    /// - Jaw: SMMA(13, 8)
+    /// - Teeth: SMMA(8, 5)
+    /// - Lips: SMMA(5, 3)
+    ///
+    /// **Use Cases**: Identifying trends, potential reversals
+    ///
+    /// **Period**: User-defined (commonly 13, 8, 5)
+    ///
+    /// **Output**: Array [Jaw, Teeth, Lips]
+    Alligator(Alligator),
 
     /// **Awesome Oscillator (AO)** - Momentum indicator based on moving averages.
     ///
@@ -227,6 +243,19 @@ pub enum Indicator {
     /// **Output**: Single value representing arithmetic average
     Sma(SimpleMovingAverage),
 
+    /// **Smoothed Moving Average (SMMA)** - Trend-following indicator.
+    ///
+    /// Similar to SMA, but gives more weight to recent prices.
+    ///
+    /// **Formula**: SMMA = (Previous SMMA * (n - 1) + Current Price) / n
+    ///
+    /// **Use Cases**: Trend identification, smoothing price data
+    ///
+    /// **Period**: User-defined (commonly 14)
+    ///
+    /// **Output**: Single value representing smoothed average
+    Smma(SmoothedMovingAverage),
+
     /// **Stochastic Oscillator (STOCH)** - Momentum indicator comparing closing price to price range.
     ///
     /// Consists of two lines:
@@ -334,6 +363,7 @@ impl fmt::Display for Indicator {
             "Indicator: {}",
             match self {
                 Self::None(i) => i.name(),
+                Self::Alligator(i) => i.name(),
                 Self::Ao(i) => i.name(),
                 Self::Atr(i) => i.name(),
                 Self::Bb(i) => i.name(),
@@ -345,10 +375,12 @@ impl fmt::Display for Indicator {
                 Self::Rsi(i) => i.name(),
                 Self::Sd(i) => i.name(),
                 Self::Sma(i) => i.name(),
+                Self::Smma(i) => i.name(),
                 Self::Stoch(i) => i.name(),
                 Self::SuperTrend(i) => i.name(),
                 Self::Tr(i) => i.name(),
                 Self::WilliamsR(i) => i.name(),
+                
             }
         )
     }
@@ -365,8 +397,12 @@ impl Next<f64> for Indicator {
     fn next(&mut self, input: f64) -> TaResult<Self::Output> {
         match self {
             Self::None(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Alligator(indicator) => indicator
+                .next(input)
+                .map(|o| OutputType::Array(vec![o.0, o.1, o.2])),
             Self::Ema(indicator) => indicator.next(input).map(OutputType::from),
             Self::Sma(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Smma(indicator) => indicator.next(input).map(OutputType::from),
             Self::Rsi(indicator) => indicator.next(input).map(OutputType::from),
             Self::Macd(indicator) => indicator
                 .next(input)
@@ -407,9 +443,11 @@ impl IndicatorTrait for Indicator {
     fn output_shape(&self) -> OutputShape {
         match self {
             Self::None(indicator) => indicator.output_shape(),
+            Self::Alligator(indicator) => indicator.output_shape(),
             Self::Ao(indicator) => indicator.output_shape(),
             Self::Ema(indicator) => indicator.output_shape(),
             Self::Sma(indicator) => indicator.output_shape(),
+            Self::Smma(indicator) => indicator.output_shape(),
             Self::Rsi(indicator) => indicator.output_shape(),
             Self::Macd(indicator) => indicator.output_shape(),
             Self::Tr(indicator) => indicator.output_shape(),
@@ -432,9 +470,13 @@ impl<T: Candle> Next<&T> for Indicator {
     fn next(&mut self, input: &T) -> TaResult<Self::Output> {
         match self {
             Self::None(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Alligator(indicator) => indicator
+                .next(input)
+                .map(|o| OutputType::Array(vec![o.0, o.1, o.2])),
             Self::Ao(indicator) => indicator.next(input).map(OutputType::from),
             Self::Ema(indicator) => indicator.next(input).map(OutputType::from),
             Self::Sma(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Smma(indicator) => indicator.next(input).map(OutputType::from),
             Self::Rsi(indicator) => indicator.next(input).map(OutputType::from),
             Self::Macd(indicator) => indicator
                 .next(input)
@@ -466,9 +508,11 @@ impl Reset for Indicator {
     fn reset(&mut self) {
         match self {
             Self::None(indicator) => indicator.reset(),
+            Self::Alligator(indicator) => indicator.reset(),
             Self::Ao(indicator) => indicator.reset(),
             Self::Ema(indicator) => indicator.reset(),
             Self::Sma(indicator) => indicator.reset(),
+            Self::Smma(indicator) => indicator.reset(),
             Self::Rsi(indicator) => indicator.reset(),
             Self::Macd(indicator) => indicator.reset(),
             Self::Tr(indicator) => indicator.reset(),
@@ -489,9 +533,11 @@ impl Period for Indicator {
     fn period(&self) -> usize {
         match self {
             Self::None(indicator) => indicator.period(),
+            Self::Alligator(indicator) => indicator.period(),
             Self::Ao(indicator) => indicator.period(),
             Self::Ema(indicator) => indicator.period(),
             Self::Sma(indicator) => indicator.period(),
+            Self::Smma(indicator) => indicator.period(),
             Self::Rsi(indicator) => indicator.period(),
             Self::Macd(indicator) => indicator.period(),
             Self::Tr(indicator) => indicator.period(),
@@ -846,6 +892,24 @@ impl Indicator {
     /// ```
     pub fn williams_r(period: usize) -> TaResult<Self> {
         Ok(Self::WilliamsR(WilliamsR::new(period)?))
+    }
+
+    /// Creates a new Smoothed Moving Average indicator.
+    /// Smoothed Moving Average (SMMA) is similar to SMA but gives more weight to recent prices.
+    ///
+    /// # Arguments
+    /// * `period` - Period for calculation (must be > 1)
+    /// 
+    /// # Returns
+    /// * `Ok(Indicator)` - Successfully created SMMA indicator
+    /// * `Err(TaError)` - If period is 0, 1 or invalid
+    /// 
+    /// # Example
+    /// ```rust
+    /// let smma = Indicator::smma(14)?;
+    /// ```
+    pub fn smma(period: usize) -> TaResult<Self> {
+        Ok(Self::Smma(SmoothedMovingAverage::new(period)?))
     }
 }
 

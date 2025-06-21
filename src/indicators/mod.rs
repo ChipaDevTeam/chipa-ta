@@ -1,3 +1,4 @@
+pub mod alligator;
 pub mod ao;
 pub mod atr;
 pub mod bb;
@@ -10,6 +11,7 @@ pub mod obv;
 pub mod rsi;
 pub mod sd;
 pub mod sma;
+pub mod smma;
 pub mod stoch;
 pub mod super_trend;
 pub mod tr;

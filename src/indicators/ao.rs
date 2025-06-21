@@ -93,6 +93,8 @@ impl AwesomeOscillator {
 impl Next<f64> for AwesomeOscillator {
     type Output = f64;
 
+    /// Calculates the Awesome Oscillator value based on the input price.
+    /// Not recommended to use this method with floats, as it does not consider the median price.
     fn next(&mut self, input: f64) -> TaResult<Self::Output> {
         let short_value = self.short_sma.next(input)?;
         let long_value = self.long_sma.next(input)?;

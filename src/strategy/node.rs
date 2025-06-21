@@ -44,8 +44,8 @@ pub enum StrategyNode {
     },
 
     Timeout {
-        cooldown: usize,           // Cooldown period in seconds
-        remaining: usize,          // Remaining cooldown time
+        cooldown: usize,           // Cooldown period in candles
+        remaining: usize,          // Remaining cooldown candles
         action: Box<StrategyNode>, // Action to execute after cooldown
     },
 
@@ -156,7 +156,9 @@ impl StrategyNode {
                 } else {
                     // Execute action after cooldown
                     let result = action.evaluate(data)?;
-                    *remaining = *cooldown; // Reset cooldown
+                    if result != Action::Hold {
+                        *remaining = *cooldown; // Reset cooldown
+                    }
                     Ok(result)
                 }
             }
@@ -691,6 +693,8 @@ mod tests {
             "Advanced Strategy V2 JSON: {}",
             serde_json::to_string_pretty(&strategy)?
         );
+
+
         println!(
             "Advanced Strategy V2 Max Period: {:?}",
             strategy.max_period()
@@ -719,6 +723,22 @@ mod tests {
             Action::StrongBuy | Action::StrongSell | Action::Hold
         ));
 
+        let files = [
+            ("tests/formats/advanced_confluence_strategy_v2.json", serde_json::to_string_pretty(&strategy)?.into_bytes()),
+            ("tests/formats/advanced_confluence_strategy_v2.msgpack", rmp_serde::to_vec(&strategy).unwrap()),
+            ("tests/formats/advanced_confluence_strategy_v2.ron", ron::to_string(&strategy).unwrap().into_bytes()),
+            ("tests/formats/advanced_confluence_strategy_v2.yaml", serde_yaml::to_string(&strategy).unwrap().into_bytes()),
+            ("tests/formats/advanced_confluence_strategy_v2.toml", toml::to_string(&strategy).unwrap().into_bytes()),
+            // ("tests/formats/advanced_confluence_strategy_v2.xml", quick_xml::se::to_string(&strategy).unwrap().into_bytes()),
+            ("tests/formats/advanced_confluence_strategy_v2.cbor", serde_cbor::to_vec(&strategy).unwrap()),
+            ("tests/formats/advanced_confluence_strategy_v2.pickle", serde_pickle::to_vec(&strategy, serde_pickle::SerOptions::new().proto_v2()).unwrap()),
+            // ("tests/formats/advanced_confluence_strategy_v2.starlark", serde_starlark::to_string(&strategy).unwrap().into_bytes()),
+            // ("tests/formats/advanced_confluence_strategy_v2.msg", serde_rosmsg::to_vec(&strategy).unwrap()),
+        ];
+        for (path, content) in files {
+            std::fs::write(path, content)
+                .unwrap_or_else(|_| panic!("Failed to write strategy to {}", path));
+        }
         Ok(())
     }
 
