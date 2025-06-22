@@ -30,7 +30,12 @@ pub enum SequenceMode {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum StrategyNode {
     /// Apply a preprocessing step to the market data.
-    Preprocess(PreprocessingStep),
+    Preprocess {
+        /// Preprocessing step to apply.
+        step: PreprocessingStep,
+        /// Then branch to execute after preprocessing.
+        then_branch: Box<StrategyNode>,
+    },
 
     /// Conditional node: if `condition` is true, execute `then_branch`,
     /// otherwise execute `else_branch` if present.
@@ -59,14 +64,48 @@ pub enum StrategyNode {
     },
 }
 
+impl Default for StrategyNode {
+    fn default() -> Self {
+        Self::Action(Action::Hold)
+    }
+}
+
 impl StrategyNode {
-    /// Evaluate the strategy node against market data, returning a trading `Action`.
-    pub fn evaluate(&mut self, data: &mut MarketData) -> TaResult<Action> {
+    /// Update the `StrategyNode` with a new market data.
+    pub fn update(&mut self, data: &MarketData) -> TaResult<()> {
         match self {
-            StrategyNode::Preprocess(step) => {
+            StrategyNode::Preprocess { then_branch, .. } => {
+                then_branch.update(data)?;
+                Ok(())
+            }
+            StrategyNode::If { condition, then_branch, else_branch } => {
+                condition.update(data)?;
+                then_branch.update(data)?;
+                if let Some(else_node) = else_branch {
+                    else_node.update(data)?;
+                }
+                Ok(())
+            }
+            StrategyNode::Timeout { action, .. } => action.update(data),
+            StrategyNode::Action(..) => Ok(()),
+            StrategyNode::Sequence { nodes, .. } => {
+                for node in nodes {
+                    node.update(data)?;
+                }
+                Ok(())
+            }
+        }
+    }
+
+    /// Evaluate the strategy node against market data, returning a trading `Action`.
+    pub fn evaluate(&mut self, data: &MarketData) -> TaResult<Action> {
+        // Before each evaluation, update the node with the latest market data.
+        self.update(data)?;
+        match self {
+            StrategyNode::Preprocess { step, then_branch } => {
                 // Apply preprocessing step, then return Hold by default.
-                step.apply(data);
-                Ok(Action::Hold)
+                // Evaluate the then_branch after preprocessing.
+                then_branch.evaluate(&step.apply(data))
             }
             StrategyNode::If {
                 condition,
@@ -168,7 +207,7 @@ impl StrategyNode {
     /// Returns the maximum indicator period required by this strategy tree, or `None` if no indicators.
     pub fn max_period(&self) -> Option<usize> {
         match self {
-            StrategyNode::Preprocess(_) => None,
+            StrategyNode::Preprocess { then_branch, .. } => then_branch.max_period(),
             StrategyNode::Action(_) => None,
             StrategyNode::If {
                 condition,
@@ -200,7 +239,7 @@ impl StrategyNode {
     /// Returns Ok(()) if valid, or Err(String) describing the first violation.
     pub fn validate(&self) -> Result<(), TaError> {
         match self {
-            StrategyNode::Preprocess(_) => Ok(()),
+            StrategyNode::Preprocess { then_branch, .. } => then_branch.validate(),
             StrategyNode::Action(_) => Ok(()),
             StrategyNode::If {
                 then_branch,
@@ -246,7 +285,10 @@ impl Period for StrategyNode {
 impl Reset for StrategyNode {
     fn reset(&mut self) {
         match self {
-            StrategyNode::Preprocess(step) => step.reset(),
+            StrategyNode::Preprocess { step, then_branch } => {
+                step.reset();
+                then_branch.reset();
+            },
             StrategyNode::If {
                 then_branch,
                 else_branch,
@@ -290,8 +332,8 @@ mod tests {
             then_branch: Box::new(StrategyNode::Action(Action::Sell)),
             else_branch: Some(Box::new(StrategyNode::Action(Action::Hold))),
         };
-        let mut data = MarketData::Float(100.0);
-        let action = strategy.evaluate(&mut data).unwrap();
+        let data = MarketData::Float(100.0);
+        let action = strategy.evaluate(&data).unwrap();
         assert_eq!(action, Action::Sell);
     }
 
@@ -422,8 +464,8 @@ mod tests {
         let mut strategy = multi_indicator_confluence_strategy()?;
         assert!(strategy.validate().is_ok());
         dbg!(strategy.max_period());
-        let mut data = MarketData::Float(100.0);
-        let action = strategy.evaluate(&mut data)?;
+        let data = MarketData::Float(100.0);
+        let action = strategy.evaluate(&data)?;
         dbg!(action);
         dbg!(serde_json::to_string(&strategy)?);
         Ok(())
@@ -489,8 +531,8 @@ mod tests {
         let mut strategy: StrategyNode = serde_json::from_str(json)?;
         assert!(strategy.validate().is_ok());
         dbg!(strategy.max_period());
-        let mut data = MarketData::Float(100.0);
-        let action = strategy.evaluate(&mut data)?;
+        let data = MarketData::Float(100.0);
+        let action = strategy.evaluate(&data)?;
         dbg!(action);
         dbg!(strategy);
         Ok(())
@@ -702,7 +744,7 @@ mod tests {
 
         // To properly test this, we would need a series of market data points.
         // For this test, we'll just run one evaluation with a sample data point.
-        let mut data = MarketData::Bar(Bar {
+        let data = MarketData::Bar(Bar {
             open: 100.0,
             high: 105.0,
             low: 98.0,
@@ -713,7 +755,7 @@ mod tests {
 
         // Note: The first `period` evaluations will not be reliable as indicators warm up.
         // A full test would involve iterating over a historical dataset.
-        let action = strategy.evaluate(&mut data)?;
+        let action = strategy.evaluate(&data)?;
         println!("Action for first data point: {:?}", action);
 
         // A simple assertion that it runs without error.
@@ -799,9 +841,9 @@ mod tests {
             close: 102.0,
             volume: 1000.0,
         };
-        let mut data = MarketData::Bar(bar);
+        let data = MarketData::Bar(bar);
         // First run, no crossover yet.
-        let action1 = strategy.evaluate(&mut data)?;
+        let action1 = strategy.evaluate(&data)?;
         println!("Action 1: {:?}", action1);
         assert_eq!(action1, Action::Hold); // Should be Hold as crossover cannot happen on first tick.
 
@@ -860,8 +902,8 @@ mod tests {
             close: 102.0,
             volume: 1000.0,
         };
-        let mut data = MarketData::Bar(bar);
-        let action = strategy.evaluate(&mut data)?;
+        let data = MarketData::Bar(bar);
+        let action = strategy.evaluate(&data)?;
 
         // Just a basic check that it runs.
         assert!(matches!(action, Action::Buy | Action::Sell | Action::Hold));

@@ -3,6 +3,9 @@ pub mod condition;
 pub mod error;
 pub mod market_data;
 pub mod node;
+pub mod wrapper;
+pub mod platform;
+pub mod binary;
 
 // Public re-exports for easy access
 pub use action::Action;

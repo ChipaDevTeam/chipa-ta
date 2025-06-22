@@ -19,6 +19,9 @@ pub enum TaError {
     Strategy(#[from] crate::strategy::StrategyError),
     #[error("Serde processing error: {0}")]
     Serde(#[from] serde_json::Error),
+
+    #[error("Not initialized, tried to call a method that requires initialization, error: {0}")]
+    NotInitialized(String),
 }
 
 impl PartialEq for TaError {

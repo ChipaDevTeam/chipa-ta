@@ -1,7 +1,7 @@
 use crate::{
     error::{TaError, TaResult},
-    strategy::{MarketData, StrategyError},
-    traits::{Indicator as IndicatorTrait, Next, Period, Reset},
+    strategy::{wrapper::IndicatorState, MarketData, StrategyError},
+    traits::{Indicator as IndicatorTrait, Period, Reset},
     types::OutputType,
     Indicator,
 };
@@ -72,14 +72,14 @@ pub enum Operator {
 pub enum Condition {
     /// Compares an indicator to a value using an operator.
     Value {
-        indicator: Box<Indicator>,
+        indicator: Box<IndicatorState>,
         value: OutputType,
         operator: Operator,
     },
     /// Compares two indicators using an operator.
     Indicator {
-        left: Box<Indicator>,
-        right: Box<Indicator>,
+        left: Box<IndicatorState>,
+        right: Box<IndicatorState>,
         operator: Operator,
     },
     /// Logical AND of multiple conditions.
@@ -130,6 +130,24 @@ impl Condition {
         }
     }
 
+    pub fn update(&mut self, data: &MarketData) -> TaResult<()> {
+        match self {
+            Condition::Value { indicator, .. } => indicator.update(data),
+            Condition::Indicator { left, right, .. } => {
+                left.update(data)?;
+                right.update(data)?;
+                Ok(())
+            }
+            Condition::And(conds) | Condition::Or(conds) => {
+                for c in conds.iter_mut() {
+                    c.update(data)?;
+                }
+                Ok(())
+            }
+            Condition::Not(c) => c.update(data),
+        }
+    }
+
     /// Evaluate the condition against market data.
     pub fn evaluate(&mut self, data: &MarketData) -> TaResult<bool> {
         match self {
@@ -139,13 +157,13 @@ impl Condition {
             //     Ok(lhs.gt(&rhs))
             // }
             Condition::Value { indicator, value, operator } => {
-                let lhs = indicator.next(data)?;
+                let lhs = indicator.prev()?;
                 let rhs = value.resolve(data)?;
                 operator.evaluate(&lhs, &rhs)
             },
             Condition::Indicator { left, right, operator } => {
-                let lhs = left.next(data)?;
-                let rhs = right.next(data)?;
+                let lhs = left.prev()?;
+                let rhs = right.prev()?;
                 operator.evaluate(&lhs, &rhs)
             }
             Condition::And(conds) => {
@@ -193,11 +211,11 @@ impl Condition {
     }
 
     pub fn value(indicator: Indicator, value: OutputType, operator: Operator) -> Condition {
-        Condition::Value { indicator: Box::new(indicator), value, operator }
+        Condition::Value { indicator: Box::new(indicator.into()), value, operator }
     }
 
     pub fn indicator(left: Indicator, right: Indicator, operator: Operator) -> Condition {
-        Condition::Indicator { left: Box::new(left), right: Box::new(right), operator }
+        Condition::Indicator { left: Box::new(left.into()), right: Box::new(right.into()), operator }
     }
 
     pub fn greater_than(indicator: Indicator, value: OutputType) -> Condition {

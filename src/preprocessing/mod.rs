@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::traits::Reset;
+use crate::{strategy::MarketData, traits::Reset};
 
 /// Preprocessing steps applied to market data before evaluation.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -16,7 +16,7 @@ impl PreprocessingStep {
     /// Applies the preprocessing step to market data.
     ///
     /// NOTE: This is a placeholder implementation. Replace with actual logic.
-    pub fn apply(&self, _data: &mut crate::strategy::MarketData) {
+    pub fn apply(&self, data: &MarketData) -> MarketData{
         match self {
             PreprocessingStep::WaveletDenoise => {
                 // TODO: Implement wavelet denoising on data
@@ -27,6 +27,7 @@ impl PreprocessingStep {
                 // For now, do nothing.
             }
         }
+        data.clone() // Return the data unchanged for now
     }
 }
 

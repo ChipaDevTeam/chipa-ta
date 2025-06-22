@@ -12,22 +12,26 @@ path = "src/stubgen.rs"
 
 
 [features]
-default = ["py"]
-js = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:serde_json"]
-py = ["dep:pyo3-stub-gen", "dep:pyo3", "dep:serde_json"]
+default = ["strategy"]
+js = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
+py = ["dep:pyo3-stub-gen", "dep:pyo3"]
+strategy = ["dep:async-trait", "dep:chrono"]
 
 [dependencies]
+async-trait = { version = "0.1.88", optional = true }
+chrono = { version = "0.4.41", features = ["serde"], optional = true}
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { version = "2.16.17", default-features = false, features = [
     "napi4",
     "serde-json",
 ], optional = true }
 napi-derive = { version = "2.16.13", optional = true }
-pyo3 = { version = "0.25.1", features = ["multiple-pymethods"], optional = true }
-pyo3-stub-gen = { version = "0.9.1", optional = true }
+pyo3 = { version = "0.25.1", features = [
+    "multiple-pymethods",
+], optional = true }
+pyo3-stub-gen = { version = "0.10.0", optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = { version = "1.0.140", optional = true }
-smallvec = { version = "1.15.1", features = ["serde"] }
+serde_json = { version = "1.0.140" }
 thiserror = "2.0.12"
 
 [dev-dependencies]
