@@ -6,6 +6,8 @@ pub mod node;
 pub mod wrapper;
 pub mod platform;
 pub mod binary;
+pub mod strat;
+
 
 // Public re-exports for easy access
 pub use action::Action;

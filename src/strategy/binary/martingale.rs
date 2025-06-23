@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::{TaError, TaResult}, strategy::platform::TradeResult};
+use crate::{error::{TaError, TaResult}, strategy::{binary::modifier::AmountModifier, platform::TradeResult}};
 
 #[derive(Serialize, Deserialize)]
 pub enum MartingaleResetCondition {
@@ -43,7 +43,7 @@ impl Martingale {
     }
 
     /// Resets the strategy based on the reset condition.
-    pub fn calculate_multiplier(&mut self, result: TradeResult) -> f64{
+    pub fn calculate_multiplier(&mut self, result: &TradeResult) -> f64 {
         match result {
             TradeResult::Win(_) => {
                 match self.reset_condition {
@@ -77,3 +77,14 @@ impl Martingale {
     }
 }
 
+impl AmountModifier for Martingale {
+    fn modify(&mut self, amount: f64, last_result: &Option<TradeResult>) -> f64 {
+        if let Some(last_result) = last_result {
+            // Calculate the multiplier based on the last trade result
+            let multiplier = self.calculate_multiplier(last_result);
+            amount * multiplier
+        } else {
+            amount
+        }
+    }
+}

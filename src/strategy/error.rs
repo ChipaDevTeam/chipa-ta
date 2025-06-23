@@ -23,4 +23,10 @@ pub enum StrategyError {
     InvalidIndicatorPeriod {
         period: usize,
     },
+
+    #[error("Poison Error: {0}")]
+    Poison(String),
+
+    #[error("Empty iterator: {0}")]
+    EmptyIterator(String),
 }
