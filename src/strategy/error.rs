@@ -29,4 +29,13 @@ pub enum StrategyError {
 
     #[error("Empty iterator: {0}")]
     EmptyIterator(String),
+
+    #[error("Serialization Error: {0}")]
+    Serialization(String),
+
+    #[error("IO Error: {0}")]
+    IO(String),
+
+    #[error("Configuration error, {0}")]
+    Configuration(String),
 }

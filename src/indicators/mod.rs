@@ -31,10 +31,14 @@ pub use stoch::StochasticOscillator;
 pub use super_trend::SuperTrend;
 pub use tr::TrueRange;
 
+use crate::traits::Candle;
+
 pub use serde::{Deserialize, Serialize};
 #[cfg(feature = "js")]
 pub mod js {
-    use crate::{indicators::indicator::NoneIndicator, traits::Next, types::OutputType};
+    use crate::{
+        indicators::indicator::NoneIndicator, traits::Candle, traits::Next, types::OutputType,
+    };
 
     use super::*;
     use napi::{Env, JsUnknown};
@@ -511,6 +515,7 @@ pub mod js {
 
 #[cfg(feature = "py")]
 pub mod py {
+    use crate::traits::Candle as CandleTrait;
     use crate::{traits::Next, types::OutputType};
     use pyo3::{
         exceptions::PyValueError, pyclass, pymethods, Bound, IntoPyObject, IntoPyObjectExt, PyAny,
@@ -519,7 +524,7 @@ pub mod py {
     use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
     use serde::{Deserialize, Serialize};
 
-    use super::{Candle as CandleTrait, Indicator as IndicatorsRs};
+    use super::Indicator as IndicatorsRs;
 
     #[gen_stub_pyclass]
     #[pyclass]
