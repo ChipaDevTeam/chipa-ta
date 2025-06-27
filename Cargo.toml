@@ -12,14 +12,16 @@ path = "src/stubgen.rs"
 
 
 [features]
-default = ["strategy"]
+default = ["strategy", "pocket_options"]
 js = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 py = ["dep:pyo3-stub-gen", "dep:pyo3"]
 strategy = ["dep:async-trait", "dep:chrono"]
+pocket_options = ["strategy", "dep:binary-options-tools"]
+
 
 [dependencies]
 async-trait = { version = "0.1.88", optional = true }
-chrono = { version = "0.4.41", features = ["serde"], optional = true}
+chrono = { version = "0.4.41", features = ["serde"], optional = true }
 futures-util = "0.3.31"
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { version = "2.16.17", default-features = false, features = [
@@ -36,6 +38,8 @@ serde_json = { version = "1.0.140" }
 thiserror = "2.0.12"
 # tokio = { version = "1.45.1", features = ["macros", "parking_lot", "rt", "sync"] }
 tracing = "0.1.41"
+binary-options-tools = { git = "https://github.com/ChipaDevTeam/BinaryOptionsTools-v2.git", branch = "master", version = "0.1.7", optional = true }
+uuid = { version = "1.17.0", features = ["serde"] }
 
 [dev-dependencies]
 quick-xml = { version = "0.37.5", features = ["serialize"] }
@@ -46,7 +50,7 @@ serde_cbor = "0.11.2"
 serde_json = "1.0.140"
 serde_rosmsg = "0.2.0"
 serde_starlark = "0.1.17"
-serde_yaml = "0.9.34"
+serde_yaml = "0.9.34-deprecated"
 toml = "0.8.23"
 
 [build-dependencies]

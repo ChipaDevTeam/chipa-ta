@@ -29,6 +29,9 @@ pub trait BinaryOptionsPlatform {
     /// Candle length type (must be convertible to seconds).
     type CandleLength: Copy + Clone + PartialEq + Eq + std::hash::Hash + Send + Sync + fmt::Debug;
 
+    /// Credentials type for the platform.
+    type Creds: Send + Sync + Clone + fmt::Debug + Serialize + for<'de> Deserialize<'de>;
+
     /// The minimum trade amount for this platform.
     const MINIMUM_TRADE_AMOUNT_USD: f64;
     /// The maximum trade amount for this platform.
@@ -36,6 +39,11 @@ pub trait BinaryOptionsPlatform {
     /// The maximum number of concurrent candle subscriptions.
     const MAX_CONCURRENT_SUBSCRIPTIONS: usize;
 
+    /// Initialize the platform with the given credentials.
+    async fn initialize(&self, credentials: Self::Creds) -> TaResult<Self>
+    where 
+        Self: Sized;
+    
     /// Place a buy order for the given asset and amount.
     async fn buy(
         &self,

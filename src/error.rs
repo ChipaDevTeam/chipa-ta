@@ -15,8 +15,12 @@ pub enum TaError {
     #[error("Cmp error, {0}")]
     Cmp(#[from] OutputError),
     /// Error originating from the strategy module.
+    #[cfg(feature = "strategy")]
     #[error("Strategy error: {0}")]
     Strategy(#[from] crate::strategy::StrategyError),
+    #[cfg(feature = "pocket_options")]
+    #[error("Platform error: {0}")]
+    Platform(#[from] crate::platforms::PlatformError),
     #[error("Serde processing error: {0}")]
     Serde(#[from] serde_json::Error),
 

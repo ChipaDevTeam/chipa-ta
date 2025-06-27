@@ -5,6 +5,9 @@ pub mod indicators;
 pub mod preprocessing;
 #[cfg(feature = "strategy")]
 pub mod strategy;
+
+#[cfg(feature = "pocket_options")]
+pub mod platforms;
 pub mod traits;
 pub mod types;
 
