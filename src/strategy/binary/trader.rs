@@ -7,7 +7,11 @@ use tracing::{info, warn};
 use crate::{
     error::{TaError, TaResult},
     strategy::{
-        binary::{info::BinaryInfo, trader_mut::TraderMut},
+        binary::{
+            info::BinaryInfo,
+            modifier::Modifier,
+            trader_mut::{TraderMut, TraderMutBuilder},
+        },
         platform::{BinaryOptionsPlatform, TradeResult},
         strat::Strategy,
         Action, MarketData, StrategyError,
@@ -178,6 +182,33 @@ impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
 
         info!("Trader state loaded from: {}", path.as_ref().display());
         Ok(trader)
+    }
+
+    /// Load trader state from a JSON file and initialize platform with credentials
+    pub async fn load_with_credentials<Q: AsRef<Path>>(
+        path: Q,
+        credentials: P::Creds,
+    ) -> TaResult<Self> {
+        let mut trader = Self::load(path).await?;
+        trader.initialize_platform(credentials).await?;
+        Ok(trader)
+    }
+
+    /// Initialize the platform with new credentials
+    pub async fn initialize_platform(&mut self, credentials: P::Creds) -> TaResult<()> {
+        let default_platform = P::default();
+        self.platform = default_platform.initialize(credentials).await?;
+
+        // Re-initialize the trader state with the new platform
+        self.trader.init(&self.platform).await?;
+
+        info!("Platform initialized with new credentials");
+        Ok(())
+    }
+
+    /// Setup platform credentials for an existing trader instance
+    pub async fn setup_platform_credentials(&mut self, credentials: P::Creds) -> TaResult<()> {
+        self.initialize_platform(credentials).await
     }
 
     /// Get current balance from the trader
@@ -379,7 +410,6 @@ impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
                             .map_err(|e| TaError::from(StrategyError::Poison(e.to_string())))?;
                         statistics.add_opened_trade(id.clone(), Utc::now());
                     }
-                    
 
                     let result = self.platform.result(&id).await?;
                     info!(
@@ -563,9 +593,7 @@ impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
         let new_balance = self.current_balance().await?;
         info!(
             "Trade result: {:?}, profit/loss: {}. New balance: {}",
-            result,
-            profit,
-            new_balance
+            result, profit, new_balance
         );
 
         Ok(())
@@ -574,10 +602,12 @@ impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
 
 /// Builder pattern for creating a Trader
 #[derive(Default)]
-pub struct TraderBuilder<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>> {
+pub struct TraderBuilder<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
+{
     config: TraderConfig,
     platform: Option<P>,
     trader_mut: Option<TraderMut<P>>,
+    trader_mut_builder: Option<TraderMutBuilder<P>>,
 }
 
 impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>> TraderBuilder<P> {
@@ -630,6 +660,32 @@ impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
         self
     }
 
+    /// Set a pre-configured TraderMutBuilder
+    pub fn with_trader_mut_builder(mut self, trader_mut_builder: TraderMutBuilder<P>) -> Self {
+        self.trader_mut_builder = Some(trader_mut_builder);
+        self
+    }
+
+    /// Configure TraderMut with a custom modifier
+    pub fn with_modifier(mut self, modifier: Modifier) -> Self {
+        if let Some(ref mut builder) = self.trader_mut_builder {
+            self.trader_mut_builder = Some(std::mem::take(builder).with_modifier(modifier));
+        } else {
+            self.trader_mut_builder = Some(TraderMutBuilder::new().with_modifier(modifier));
+        }
+        self
+    }
+
+    /// Configure TraderMut with initial balance
+    pub fn with_initial_balance(mut self, balance: f64) -> Self {
+        if let Some(ref mut builder) = self.trader_mut_builder {
+            self.trader_mut_builder = Some(std::mem::take(builder).with_balance(balance));
+        } else {
+            self.trader_mut_builder = Some(TraderMutBuilder::new().with_balance(balance));
+        }
+        self
+    }
+
     pub async fn setup_with_credentials(mut self, credentials: P::Creds) -> TaResult<Self> {
         let platform = P::default();
         let initialized_platform = platform.initialize(credentials).await?;
@@ -639,11 +695,16 @@ impl<P: BinaryOptionsPlatform + Default + Serialize + for<'de> Deserialize<'de>>
 
     pub fn build(self) -> TaResult<Trader<P>> {
         let platform = self.platform.ok_or_else(|| {
-            TaError::from(StrategyError::Configuration(
-                "Platform not set".to_string(),
-            ))
+            TaError::from(StrategyError::Configuration("Platform not set".to_string()))
         })?;
-        let trader_mut = self.trader_mut.unwrap_or_default();
+
+        let trader_mut = if let Some(trader_mut) = self.trader_mut {
+            trader_mut
+        } else if let Some(builder) = self.trader_mut_builder {
+            builder.build()
+        } else {
+            TraderMut::default()
+        };
 
         Ok(Trader::new(platform, self.config, trader_mut))
     }
