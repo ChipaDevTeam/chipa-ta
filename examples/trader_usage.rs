@@ -1,10 +1,9 @@
-// Example demonstrating how to use the new TraderMut builder and platform initialization
+#![allow(unused)]
 
+// Example demonstrating how to use the new TraderMut builder and platform initialization
 use chipa_ta::strategy::{
     binary::{
-        trader::{Trader, TraderConfig},
-        trader_mut::TraderMut,
-        modifier::Modifier,
+        martingale::MartingaleResetCondition, modifier::Modifier, trader::{Trader, TraderConfig}, trader_mut::TraderMut
     },
     platform::BinaryOptionsPlatform,
 };
@@ -15,9 +14,9 @@ where
     P: BinaryOptionsPlatform + Default + serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     // 1. Create a TraderMut with custom modifier using the builder
-    let custom_trader_mut = TraderMut::builder()
+    let custom_trader_mut = TraderMut::<P>::builder()
         .with_balance(1000.0)
-        .with_modifier(Modifier::martingale(2.0, 5, Default::default()).unwrap())
+        .with_modifier(Modifier::martingale(2.0, 5, MartingaleResetCondition::Win).unwrap())
         .build();
 
     // 2. Use the TraderBuilder with custom TraderMut
@@ -57,9 +56,9 @@ where
         .unwrap();
 
     // 5. Use TraderBuilder with modifier configuration
-    let trader_with_modifier = Trader::builder()
+    let trader_with_modifier = Trader::<P>::builder()
         .with_trade_amount(25.0)
-        .with_modifier(Modifier::martingale(1.5, 3, Default::default()).unwrap())
+        .with_modifier(Modifier::martingale(1.5, 3, MartingaleResetCondition::WinOrDraw).unwrap())
         .with_initial_balance(500.0)
         .setup_with_credentials(P::Creds::default())
         .await
@@ -68,6 +67,9 @@ where
         .unwrap();
 }
 
+fn main() {
+    
+}
 // Usage patterns:
 
 // Pattern 1: Direct TraderMut builder

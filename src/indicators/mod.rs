@@ -31,7 +31,6 @@ pub use stoch::StochasticOscillator;
 pub use super_trend::SuperTrend;
 pub use tr::TrueRange;
 
-use crate::traits::Candle;
 
 pub use serde::{Deserialize, Serialize};
 #[cfg(feature = "js")]

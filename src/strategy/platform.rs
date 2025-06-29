@@ -30,7 +30,7 @@ pub trait BinaryOptionsPlatform {
     type CandleLength: Copy + Clone + PartialEq + Eq + std::hash::Hash + Send + Sync + fmt::Debug;
 
     /// Credentials type for the platform.
-    type Creds: Send + Sync + Clone + fmt::Debug + Serialize + for<'de> Deserialize<'de>;
+    type Creds: Send + Sync + Clone + fmt::Debug + Serialize + for<'de> Deserialize<'de> + Default;
 
     /// The minimum trade amount for this platform.
     const MINIMUM_TRADE_AMOUNT_USD: f64;
