@@ -4,8 +4,6 @@ pub mod error;
 pub mod market_data;
 pub mod node;
 pub mod wrapper;
-pub mod platform;
-pub mod binary;
 pub mod strat;
 
 

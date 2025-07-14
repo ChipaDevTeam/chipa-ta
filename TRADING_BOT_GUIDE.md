@@ -28,7 +28,7 @@ First, add the necessary dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-chipa-ta = { path = ".", features = ["pocket_options"] }
+chipa-ta = { path = ".", features = ["pocket_option"] }
 binary-options-tools = "0.1"
 tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
