@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TaResult,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };
 
@@ -31,7 +31,7 @@ impl OnBalanceVolume {
     }
 }
 
-impl Indicator for OnBalanceVolume {
+impl IndicatorTrait for OnBalanceVolume {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

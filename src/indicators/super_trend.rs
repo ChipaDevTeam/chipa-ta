@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::TaResult;
 use crate::indicators::AverageTrueRange as Atr;
-use crate::traits::{Candle, Indicator, Next, Period, Reset};
+use crate::traits::{Candle, IndicatorTrait, Next, Period, Reset};
 use crate::types::OutputShape;
 
 //  TODO: Fix SuperTrend implementation to use the correct calculations
@@ -34,7 +34,7 @@ impl From<SuperTrendOutput> for Vec<f64> {
     }
 }
 
-impl Indicator for SuperTrend {
+impl IndicatorTrait for SuperTrend {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(2)
     }

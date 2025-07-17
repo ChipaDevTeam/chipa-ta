@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::{TaError, TaResult},
     helper_types::Queue,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::{OutputShape, Status},
 };
 
@@ -17,7 +17,7 @@ pub struct SimpleMovingAverage {
     status: Status<(), Queue<f64>, Queue<f64>>,
 }
 
-impl Indicator for SimpleMovingAverage {
+impl IndicatorTrait for SimpleMovingAverage {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

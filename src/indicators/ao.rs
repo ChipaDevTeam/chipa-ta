@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TaResult,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };
 
@@ -51,7 +51,7 @@ impl Serialize for AwesomeOscillator {
     }
 }
 
-impl Indicator for AwesomeOscillator {
+impl IndicatorTrait for AwesomeOscillator {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

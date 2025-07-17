@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::TaResult,
     helper::max3,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };
 
@@ -15,7 +15,7 @@ pub struct TrueRange {
     prev_close: Option<f64>,
 }
 
-impl Indicator for TrueRange {
+impl IndicatorTrait for TrueRange {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

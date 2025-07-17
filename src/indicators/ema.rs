@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{TaError, TaResult},
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };
 
@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for ExponentialMovingAverage {
     }
 }
 
-impl Indicator for ExponentialMovingAverage {
+impl IndicatorTrait for ExponentialMovingAverage {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

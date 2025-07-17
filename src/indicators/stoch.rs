@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::TaResult;
 use crate::indicators::SimpleMovingAverage as Sma;
-use crate::traits::{Candle, Indicator};
+use crate::traits::{Candle, IndicatorTrait};
 use crate::traits::{Next, Period, Reset};
 use crate::types::OutputShape;
 
@@ -69,7 +69,7 @@ impl StochasticOscillator {
         })
     }
 }
-impl Indicator for StochasticOscillator {
+impl IndicatorTrait for StochasticOscillator {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(2)
     }

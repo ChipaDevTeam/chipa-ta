@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::{TaError, TaResult},
     types::Queue,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };
 
@@ -66,7 +66,7 @@ impl SmoothedMovingAverage {
     }
 }
 
-impl Indicator for SmoothedMovingAverage {
+impl IndicatorTrait for SmoothedMovingAverage {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

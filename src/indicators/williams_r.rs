@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TaResult,
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::{OutputShape, Queue},
 };
 
@@ -64,7 +64,7 @@ impl<'de> Deserialize<'de> for WilliamsR {
     }
 }
 
-impl Indicator for WilliamsR {
+impl IndicatorTrait for WilliamsR {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

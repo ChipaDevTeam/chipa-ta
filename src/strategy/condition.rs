@@ -1,7 +1,7 @@
 use crate::{
     error::{TaError, TaResult},
     strategy::{wrapper::IndicatorState, MarketData, StrategyError},
-    traits::{Indicator as IndicatorTrait, Period, Reset},
+    traits::{IndicatorTrait, Period, Reset},
     types::OutputType,
     Indicator,
 };

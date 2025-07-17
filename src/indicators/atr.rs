@@ -2,7 +2,7 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, indicators::{ExponentialMovingAverage, TrueRange}, traits::{Candle, Indicator, Next, Period, Reset}, types::OutputShape};
+use crate::{error::TaResult, indicators::{ExponentialMovingAverage, TrueRange}, traits::{Candle, IndicatorTrait, Next, Period, Reset}, types::OutputShape};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AverageTrueRange {
@@ -51,7 +51,7 @@ impl AverageTrueRange {
     }
 }
 
-impl Indicator for AverageTrueRange {
+impl IndicatorTrait for AverageTrueRange {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

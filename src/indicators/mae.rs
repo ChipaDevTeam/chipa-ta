@@ -4,7 +4,7 @@
 use core::fmt;
 
 use crate::error::{TaError, TaResult};
-use crate::traits::{Candle, Indicator, Next, Period, Reset};
+use crate::traits::{Candle, IndicatorTrait, Next, Period, Reset};
 use crate::types::OutputShape;
 use serde::{Deserialize, Serialize};
 
@@ -48,7 +48,7 @@ impl MeanAbsoluteError {
     }
 }
 
-impl Indicator for MeanAbsoluteError {
+impl IndicatorTrait for MeanAbsoluteError {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(1)
     }

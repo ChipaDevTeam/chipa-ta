@@ -4,6 +4,9 @@ use crate::types::OutputError;
 
 #[derive(Error, Debug)]
 pub enum TaError {
+    /// When parsing an indicator from a string (representing the indicator in the CT format) fails.
+    #[error("Invalid Chipa Trading Lang format: {0}")]
+    InvalidChipaLangFormat(String),
     #[error("InvalidParameter '{0}' found")]
     InvalidParameter(String),
     #[error("Empty iterator recieved on function '{0}'")]

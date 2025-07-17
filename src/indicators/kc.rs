@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{TaError, TaResult},
-    traits::{Candle, Indicator, Next, Period, Reset},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };
 
@@ -93,7 +93,7 @@ impl KeltnerChannel {
     }
 }
 
-impl Indicator for KeltnerChannel {
+impl IndicatorTrait for KeltnerChannel {
     fn output_shape(&self) -> OutputShape {
         OutputShape::Shape(3) // Upper, Middle, Lower
     }

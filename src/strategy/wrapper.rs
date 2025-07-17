@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use serde::{Serialize, Deserialize};
 
 use crate::{
-    error::{TaError, TaResult}, indicators::indicator::Indicator as IndicatorEnum, traits::{Indicator, Next, Period, Reset}, types::{OutputShape, OutputType}
+    error::{TaError, TaResult}, indicators::indicator::Indicator as IndicatorEnum, traits::{IndicatorTrait as Indicator, Next, Period, Reset}, types::{OutputShape, OutputType}
 };
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -38,6 +38,18 @@ impl Indicator for IndicatorState {
     fn output_shape(&self) -> OutputShape {
         self.indicator.output_shape()
     }
+
+    // fn from_ct_string(s: &str) -> TaResult<Self> {
+    //     let indicator = IndicatorEnum::from_ct_string(s)?;
+    //     Ok(Self {
+    //         indicator,
+    //         previous_output: None,
+    //     })
+    // }
+
+    // fn to_ct_string(&self) -> String {
+    //     self.indicator.to_ct_string()
+    // }
 }
 
 impl Period for IndicatorState {

@@ -1,5 +1,6 @@
 use core::fmt;
 
+use chipa_ta_macros::AutoImpl;
 use serde::{Deserialize, Serialize};
 
 use crate::indicators::alligator::Alligator;
@@ -10,7 +11,7 @@ use crate::indicators::sd::StandardDeviation;
 use crate::indicators::williams_r::WilliamsR;
 use crate::indicators::smma::SmoothedMovingAverage;
 use crate::indicators::{BollingerBands, MeanAbsoluteError, StochasticOscillator};
-use crate::traits::Indicator as IndicatorTrait;
+use crate::traits::IndicatorTrait;
 use crate::types::OutputShape;
 use crate::{
     error::TaResult,
@@ -67,7 +68,14 @@ use crate::{
 /// // Deserialize from JSON
 /// let restored: Indicator = serde_json::from_str(&json)?;
 /// ```
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, AutoImpl)]
+#[auto_implement(path = "src/traits.rs")]
+#[auto_implement(trait = Period)]
+#[auto_implement(trait = Reset)]
+#[auto_implement(trait = IndicatorTrait)]
+// #[auto_implement(method(from_ct_string = "from_ct_string_custom"))]
+
+
 #[serde(tag = "type")]
 pub enum Indicator {
     /// **None Indicator** - A pass-through indicator that returns input values unchanged.
@@ -319,6 +327,7 @@ pub enum Indicator {
     WilliamsR(WilliamsR),
 }
 
+
 /// A placeholder indicator that passes through input values unchanged.
 ///
 /// The `NoneIndicator` serves as a null object pattern implementation,
@@ -439,30 +448,30 @@ impl Next<f64> for Indicator {
     }
 }
 
-impl IndicatorTrait for Indicator {
-    fn output_shape(&self) -> OutputShape {
-        match self {
-            Self::None(indicator) => indicator.output_shape(),
-            Self::Alligator(indicator) => indicator.output_shape(),
-            Self::Ao(indicator) => indicator.output_shape(),
-            Self::Ema(indicator) => indicator.output_shape(),
-            Self::Sma(indicator) => indicator.output_shape(),
-            Self::Smma(indicator) => indicator.output_shape(),
-            Self::Rsi(indicator) => indicator.output_shape(),
-            Self::Macd(indicator) => indicator.output_shape(),
-            Self::Tr(indicator) => indicator.output_shape(),
-            Self::Atr(indicator) => indicator.output_shape(),
-            Self::SuperTrend(indicator) => indicator.output_shape(),
-            Self::Bb(indicator) => indicator.output_shape(),
-            Self::Stoch(indicator) => indicator.output_shape(),
-            Self::Sd(indicator) => indicator.output_shape(),
-            Self::Mae(indicator) => indicator.output_shape(),
-            Self::Obv(indicator) => indicator.output_shape(),
-            Self::Kc(indicator) => indicator.output_shape(),
-            Self::WilliamsR(indicator) => indicator.output_shape(),
-        }
-    }
-}
+// impl IndicatorTrait for Indicator {
+//     fn output_shape(&self) -> OutputShape {
+//         match self {
+//             Self::None(indicator) => indicator.output_shape(),
+//             Self::Alligator(indicator) => indicator.output_shape(),
+//             Self::Ao(indicator) => indicator.output_shape(),
+//             Self::Ema(indicator) => indicator.output_shape(),
+//             Self::Sma(indicator) => indicator.output_shape(),
+//             Self::Smma(indicator) => indicator.output_shape(),
+//             Self::Rsi(indicator) => indicator.output_shape(),
+//             Self::Macd(indicator) => indicator.output_shape(),
+//             Self::Tr(indicator) => indicator.output_shape(),
+//             Self::Atr(indicator) => indicator.output_shape(),
+//             Self::SuperTrend(indicator) => indicator.output_shape(),
+//             Self::Bb(indicator) => indicator.output_shape(),
+//             Self::Stoch(indicator) => indicator.output_shape(),
+//             Self::Sd(indicator) => indicator.output_shape(),
+//             Self::Mae(indicator) => indicator.output_shape(),
+//             Self::Obv(indicator) => indicator.output_shape(),
+//             Self::Kc(indicator) => indicator.output_shape(),
+//             Self::WilliamsR(indicator) => indicator.output_shape(),
+//         }
+//     }
+// }
 
 impl<T: Candle> Next<&T> for Indicator {
     type Output = OutputType;
@@ -504,55 +513,55 @@ impl<T: Candle> Next<&T> for Indicator {
     }
 }
 
-impl Reset for Indicator {
-    fn reset(&mut self) {
-        match self {
-            Self::None(indicator) => indicator.reset(),
-            Self::Alligator(indicator) => indicator.reset(),
-            Self::Ao(indicator) => indicator.reset(),
-            Self::Ema(indicator) => indicator.reset(),
-            Self::Sma(indicator) => indicator.reset(),
-            Self::Smma(indicator) => indicator.reset(),
-            Self::Rsi(indicator) => indicator.reset(),
-            Self::Macd(indicator) => indicator.reset(),
-            Self::Tr(indicator) => indicator.reset(),
-            Self::Atr(indicator) => indicator.reset(),
-            Self::SuperTrend(indicator) => indicator.reset(),
-            Self::Bb(indicator) => indicator.reset(),
-            Self::Stoch(indicator) => indicator.reset(),
-            Self::Sd(indicator) => indicator.reset(),
-            Self::Mae(indicator) => indicator.reset(),
-            Self::Obv(indicator) => indicator.reset(),
-            Self::Kc(indicator) => indicator.reset(),
-            Self::WilliamsR(indicator) => indicator.reset(),
-        }
-    }
-}
+// impl Reset for Indicator {
+//     fn reset(&mut self) {
+//         match self {
+//             Self::None(indicator) => indicator.reset(),
+//             Self::Alligator(indicator) => indicator.reset(),
+//             Self::Ao(indicator) => indicator.reset(),
+//             Self::Ema(indicator) => indicator.reset(),
+//             Self::Sma(indicator) => indicator.reset(),
+//             Self::Smma(indicator) => indicator.reset(),
+//             Self::Rsi(indicator) => indicator.reset(),
+//             Self::Macd(indicator) => indicator.reset(),
+//             Self::Tr(indicator) => indicator.reset(),
+//             Self::Atr(indicator) => indicator.reset(),
+//             Self::SuperTrend(indicator) => indicator.reset(),
+//             Self::Bb(indicator) => indicator.reset(),
+//             Self::Stoch(indicator) => indicator.reset(),
+//             Self::Sd(indicator) => indicator.reset(),
+//             Self::Mae(indicator) => indicator.reset(),
+//             Self::Obv(indicator) => indicator.reset(),
+//             Self::Kc(indicator) => indicator.reset(),
+//             Self::WilliamsR(indicator) => indicator.reset(),
+//         }
+//     }
+// }
 
-impl Period for Indicator {
-    fn period(&self) -> usize {
-        match self {
-            Self::None(indicator) => indicator.period(),
-            Self::Alligator(indicator) => indicator.period(),
-            Self::Ao(indicator) => indicator.period(),
-            Self::Ema(indicator) => indicator.period(),
-            Self::Sma(indicator) => indicator.period(),
-            Self::Smma(indicator) => indicator.period(),
-            Self::Rsi(indicator) => indicator.period(),
-            Self::Macd(indicator) => indicator.period(),
-            Self::Tr(indicator) => indicator.period(),
-            Self::Atr(indicator) => indicator.period(),
-            Self::SuperTrend(indicator) => indicator.period(),
-            Self::Bb(indicator) => indicator.period(),
-            Self::Stoch(indicator) => indicator.period(),
-            Self::Sd(indicator) => indicator.period(),
-            Self::Mae(indicator) => indicator.period(),
-            Self::Obv(indicator) => indicator.period(),
-            Self::Kc(indicator) => indicator.period(),
-            Self::WilliamsR(indicator) => indicator.period(),
-        }
-    }
-}
+// impl Period for Indicator {
+//     fn period(&self) -> usize {
+//         match self {
+//             Self::None(indicator) => indicator.period(),
+//             Self::Alligator(indicator) => indicator.period(),
+//             Self::Ao(indicator) => indicator.period(),
+//             Self::Ema(indicator) => indicator.period(),
+//             Self::Sma(indicator) => indicator.period(),
+//             Self::Smma(indicator) => indicator.period(),
+//             Self::Rsi(indicator) => indicator.period(),
+//             Self::Macd(indicator) => indicator.period(),
+//             Self::Tr(indicator) => indicator.period(),
+//             Self::Atr(indicator) => indicator.period(),
+//             Self::SuperTrend(indicator) => indicator.period(),
+//             Self::Bb(indicator) => indicator.period(),
+//             Self::Stoch(indicator) => indicator.period(),
+//             Self::Sd(indicator) => indicator.period(),
+//             Self::Mae(indicator) => indicator.period(),
+//             Self::Obv(indicator) => indicator.period(),
+//             Self::Kc(indicator) => indicator.period(),
+//             Self::WilliamsR(indicator) => indicator.period(),
+//         }
+//     }
+// }
 
 impl Reset for NoneIndicator {
     fn reset(&mut self) {}
@@ -575,6 +584,14 @@ impl<T: Candle> Next<&T> for NoneIndicator {
 }
 
 impl Indicator {
+    // fn from_ct_string_custom(s: &str) -> TaResult<Self> {
+    //     // Custom parsing logic for Chipa Trade language
+    //     // This is a placeholder; actual implementation will depend on the language syntax
+    //     Err(crate::error::TaError::Unexpected(
+    //         "Custom from_ct_string not implemented".to_string(),
+    //     ))
+    // }
+
     /// Creates a new None indicator (pass-through).
     ///
     /// Returns an indicator that simply passes input values through unchanged.
