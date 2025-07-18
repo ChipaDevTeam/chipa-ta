@@ -1,14 +1,19 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{TaError, TaResult},
-    types::Queue,
     traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
+    types::Queue,
 };
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Smma(period)), may_fail))]
 pub struct SmoothedMovingAverage {
     period: usize,
     queue: Queue<f64>,
@@ -23,11 +28,12 @@ impl Serialize for SmoothedMovingAverage {
     {
         #[derive(Serialize)]
         struct SmoothedMovingAverageVisitor {
-            period: usize
+            period: usize,
         }
         SmoothedMovingAverageVisitor {
-            period: self.period
-        }.serialize(serializer)
+            period: self.period,
+        }
+        .serialize(serializer)
     }
 }
 
@@ -38,7 +44,7 @@ impl<'de> Deserialize<'de> for SmoothedMovingAverage {
     {
         #[derive(Deserialize)]
         struct SmoothedMovingAverageVisitor {
-            period: usize
+            period: usize,
         }
         let visitor = SmoothedMovingAverageVisitor::deserialize(deserializer)?;
         Ok(Self {
@@ -90,8 +96,8 @@ impl Next<f64> for SmoothedMovingAverage {
                     let avg = sum / self.period as f64;
                     self.smma = Some(avg);
                     return Ok(avg);
-                },
-                None => return Ok(input)
+                }
+                None => return Ok(input),
             }
         }
 

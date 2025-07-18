@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -10,10 +13,38 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(clippy::duplicated_attributes)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(
+        grammar(Macd(fast_period, slow_period, signal_period)),
+        wrapper(MovingAverageConvergenceDivergenceWrapper(usize, usize, usize)),
+        may_fail
+    )
+)]
 pub struct MovingAverageConvergenceDivergence {
     fast_ema: Ema,
     slow_ema: Ema,
     signal_ema: Ema,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct MovingAverageConvergenceDivergenceWrapper {
+    fast_period: usize,
+    slow_period: usize,
+    signal_period: usize,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&MovingAverageConvergenceDivergence> for MovingAverageConvergenceDivergenceWrapper {
+    fn from(macd: &MovingAverageConvergenceDivergence) -> Self {
+        MovingAverageConvergenceDivergenceWrapper {
+            fast_period: macd.fast_ema.period(),
+            slow_period: macd.slow_ema.period(),
+            signal_period: macd.signal_ema.period(),
+        }
+    }
 }
 
 /// Creating custom Serialize and deserialize implementations for MovingAverageConvergenceDivergence
@@ -206,7 +237,7 @@ mod tests {
     #[test]
     fn test_display() {
         let indicator = Macd::new(13, 30, 10).unwrap();
-        assert_eq!(format!("{}", indicator), "MACD(13, 30, 10)");
+        assert_eq!(format!("{indicator}"), "MACD(13, 30, 10)");
     }
 
     #[test]

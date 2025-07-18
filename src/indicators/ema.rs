@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -14,6 +17,8 @@ struct EmaSerializer {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Ema(period)), may_fail))]
 pub struct ExponentialMovingAverage {
     period: usize,
     k: f64,
@@ -167,7 +172,7 @@ mod tests {
     #[test]
     fn test_display() {
         let ema = ExponentialMovingAverage::new(7).unwrap();
-        assert_eq!(format!("{}", ema), "EMA(7)");
+        assert_eq!(format!("{ema}"), "EMA(7)");
     }
 
     #[test]

@@ -16,7 +16,7 @@ impl PreprocessingStep {
     /// Applies the preprocessing step to market data.
     ///
     /// NOTE: This is a placeholder implementation. Replace with actual logic.
-    pub fn apply(&self, data: &MarketData) -> MarketData{
+    pub fn apply(&self, data: &MarketData) -> MarketData {
         match self {
             PreprocessingStep::WaveletDenoise => {
                 // TODO: Implement wavelet denoising on data

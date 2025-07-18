@@ -1,6 +1,9 @@
 // Stochastic Oscillator implementation for chipa-ta
 // Based on ta-rs and TA-Lib
 
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -12,6 +15,11 @@ use crate::traits::{Next, Period, Reset};
 use crate::types::OutputShape;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(grammar(Stoch(period, smoothing_period)), may_fail)
+)]
 pub struct StochasticOscillator {
     pub period: usize,
     pub smoothing_period: usize, // Smoothing period for %D
@@ -126,9 +134,7 @@ mod tests {
     fn assert_approx_eq(a: f64, b: f64, epsilon: f64) {
         assert!(
             (a - b).abs() <= epsilon,
-            "{} is not approximately equal to {}",
-            a,
-            b
+            "{a} is not approximately equal to {b}"
         );
     }
 
@@ -213,7 +219,7 @@ mod tests {
 
         // Serialize the indicator
         let serialized = serde_json::to_string(&stoch).expect("Failed to serialize");
-        println!("Serialized StochasticOscillator: {}", serialized);
+        println!("Serialized StochasticOscillator: {serialized}");
 
         // Assert that 'values' and 'd' are not in the serialized output
         assert!(!serialized.contains("values"));

@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use serde::{Deserialize, Serialize};
 
 use crate::error::TaResult;
@@ -9,9 +12,34 @@ use crate::types::OutputShape;
 //  SuperTrend is a trend-following indicator that uses the Average True Range (ATR) to determine the trend direction.
 //  It consists of two bands: an upper band and a lower band, which are calculated based on the ATR and a multiplier.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(
+        grammar(SuperTrend(multiplier, period)),
+        wrapper(SuperTrendWrapper(f64, usize)),
+        may_fail
+    )
+)]
 pub struct SuperTrend {
     multiplier: f64,
     atr: Atr,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct SuperTrendWrapper {
+    multiplier: f64,
+    period: usize,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&SuperTrend> for SuperTrendWrapper {
+    fn from(super_trend: &SuperTrend) -> Self {
+        Self {
+            multiplier: super_trend.multiplier,
+            period: super_trend.period(),
+        }
+    }
 }
 
 pub struct SuperTrendOutput {

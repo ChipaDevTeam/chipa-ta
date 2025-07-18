@@ -2,18 +2,22 @@ use std::ops::Deref;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{error::TaResult, strategy::{Action, MarketData, StrategyNode}, traits::{Period, Reset}};
+use crate::{
+    error::TaResult,
+    strategy::{Action, MarketData, StrategyNode},
+    traits::{Period, Reset},
+};
 
 #[derive(Clone)]
 pub enum State {
     Progress(usize),
-    Ready
+    Ready,
 }
 
 #[derive(Clone)]
 pub struct Strategy {
     pub nodes: StrategyNode,
-    pub state: State
+    pub state: State,
 }
 
 impl Deref for Strategy {
@@ -35,7 +39,10 @@ impl Default for Strategy {
 
 impl Strategy {
     pub fn new(nodes: StrategyNode) -> Self {
-        Self { nodes, state: State::Progress(0) }
+        Self {
+            nodes,
+            state: State::Progress(0),
+        }
     }
 
     pub fn evaluate(&mut self, data: &MarketData) -> TaResult<Option<Action>> {
@@ -44,7 +51,7 @@ impl Strategy {
             State::Progress(_) => {
                 self.nodes.update(data)?;
                 Ok(None)
-            },
+            }
             State::Ready => self.nodes.evaluate(data).map(Some),
         }
     }

@@ -20,9 +20,7 @@ pub enum StrategyError {
         value: OutputShape,
     },
     #[error("Invalid indicator period: {period}")]
-    InvalidIndicatorPeriod {
-        period: usize,
-    },
+    InvalidIndicatorPeriod { period: usize },
 
     #[error("Poison Error: {0}")]
     Poison(String),

@@ -11,13 +11,14 @@ name = "stubgen"
 path = "src/stubgen.rs"
 
 [features]
-default = ["strategy", "chipa_lang"]
+default = ["strategy"]
 js = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 py = ["dep:pyo3-stub-gen", "dep:pyo3"]
 strategy = ["dep:async-trait", "dep:chrono"]
-chipa_lang = []
+chipa_lang = ["dep:chipa-lang-utils"]
 
 [dependencies]
+chipa-lang-utils = { path = "../chipa-lang-utils", version = "0.1.0", optional = true }
 chipa-ta-macros = { path = "chipa-ta-macros", version = "0.1.0" }
 
 async-trait = { version = "0.1.88", optional = true }

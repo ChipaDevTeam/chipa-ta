@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use std::fmt;
 
 use crate::error::{TaError, TaResult};
@@ -6,6 +9,8 @@ use crate::types::OutputShape;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Sd(period)), may_fail))]
 pub struct StandardDeviation {
     period: usize,
     #[serde(skip)]
@@ -198,6 +203,6 @@ mod tests {
     #[test]
     fn test_display() {
         let sd = StandardDeviation::new(5).unwrap();
-        assert_eq!(format!("{}", sd), "SD(5)");
+        assert_eq!(format!("{sd}"), "SD(5)");
     }
 }

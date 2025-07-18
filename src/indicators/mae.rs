@@ -1,6 +1,9 @@
 // Mean Absolute Error (MAE) indicator implementation for chipa-ta
 // Based on ta-rs and TA-Lib
 
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use crate::error::{TaError, TaResult};
@@ -9,6 +12,8 @@ use crate::types::OutputShape;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Mae(period)), may_fail))]
 pub struct MeanAbsoluteError {
     pub period: usize,
     #[serde(skip)]

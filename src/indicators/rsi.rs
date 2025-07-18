@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -19,6 +22,8 @@ struct RsiSerializer {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Rsi(period)), may_fail))]
 pub struct RelativeStrengthIndex {
     period: usize,
     up_ema: Ema,
@@ -191,7 +196,7 @@ mod tests {
     #[test]
     fn test_display() {
         let rsi = RelativeStrengthIndex::new(16).unwrap();
-        assert_eq!(format!("{}", rsi), "RSI(16)");
+        assert_eq!(format!("{rsi}"), "RSI(16)");
     }
 
     #[test]

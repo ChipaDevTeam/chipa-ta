@@ -1,3 +1,9 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::{
+    errors::{LangError, LangResult},
+    Lang, Pair, Rule,
+};
+
 use core::fmt;
 
 use chipa_ta_macros::AutoImpl;
@@ -8,8 +14,8 @@ use crate::indicators::ao::AwesomeOscillator;
 use crate::indicators::kc::KeltnerChannel;
 use crate::indicators::obv::OnBalanceVolume;
 use crate::indicators::sd::StandardDeviation;
-use crate::indicators::williams_r::WilliamsR;
 use crate::indicators::smma::SmoothedMovingAverage;
+use crate::indicators::williams_r::WilliamsR;
 use crate::indicators::{BollingerBands, MeanAbsoluteError, StochasticOscillator};
 use crate::traits::IndicatorTrait;
 use crate::types::OutputShape;
@@ -74,8 +80,6 @@ use crate::{
 #[auto_implement(trait = Reset)]
 #[auto_implement(trait = IndicatorTrait)]
 // #[auto_implement(method(from_ct_string = "from_ct_string_custom"))]
-
-
 #[serde(tag = "type")]
 pub enum Indicator {
     /// **None Indicator** - A pass-through indicator that returns input values unchanged.
@@ -89,7 +93,7 @@ pub enum Indicator {
     None(NoneIndicator),
 
     /// **Alligator** - A trend-following indicator with three smoothed moving averages.
-    /// 
+    ///
     /// Consists of:
     /// - Jaw: SMMA(13, 8)
     /// - Teeth: SMMA(8, 5)
@@ -327,7 +331,6 @@ pub enum Indicator {
     WilliamsR(WilliamsR),
 }
 
-
 /// A placeholder indicator that passes through input values unchanged.
 ///
 /// The `NoneIndicator` serves as a null object pattern implementation,
@@ -345,7 +348,16 @@ pub enum Indicator {
 /// assert_eq!(none.next(100.0)?, 100.0);
 /// ```
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct NoneIndicator;
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(None())))]
+pub struct NoneIndicator {}
+
+impl NoneIndicator {
+    /// Creates a new `NoneIndicator`.
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
 impl Period for NoneIndicator {
     fn period(&self) -> usize {
@@ -389,7 +401,6 @@ impl fmt::Display for Indicator {
                 Self::SuperTrend(i) => i.name(),
                 Self::Tr(i) => i.name(),
                 Self::WilliamsR(i) => i.name(),
-                
             }
         )
     }
@@ -397,7 +408,7 @@ impl fmt::Display for Indicator {
 
 impl Default for Indicator {
     fn default() -> Self {
-        Self::None(NoneIndicator)
+        Self::None(NoneIndicator {})
     }
 }
 impl Next<f64> for Indicator {
@@ -563,6 +574,103 @@ impl<T: Candle> Next<&T> for Indicator {
 //     }
 // }
 
+#[cfg(feature = "chipa_lang")]
+impl Lang for Indicator {
+    fn from_ct(input: &str) -> LangResult<Self> {
+        match input {
+            _ if input.starts_with("None") => Ok(Indicator::none()),
+            _ if input.starts_with("Alligator") => {
+                Alligator::from_ct(input).map(Indicator::Alligator)
+            }
+            _ if input.starts_with("Ao") => AwesomeOscillator::from_ct(input).map(Indicator::Ao),
+            _ if input.starts_with("Atr") => AverageTrueRange::from_ct(input).map(Indicator::Atr),
+            _ if input.starts_with("Bb") => BollingerBands::from_ct(input).map(Indicator::Bb),
+            _ if input.starts_with("Ema") => {
+                ExponentialMovingAverage::from_ct(input).map(Indicator::Ema)
+            }
+            _ if input.starts_with("Kc") => KeltnerChannel::from_ct(input).map(Indicator::Kc),
+            _ if input.starts_with("Macd") => {
+                MovingAverageConvergenceDivergence::from_ct(input).map(Indicator::Macd)
+            }
+            _ if input.starts_with("Mae") => MeanAbsoluteError::from_ct(input).map(Indicator::Mae),
+            _ if input.starts_with("Obv") => OnBalanceVolume::from_ct(input).map(Indicator::Obv),
+            _ if input.starts_with("Rsi") => {
+                RelativeStrengthIndex::from_ct(input).map(Indicator::Rsi)
+            }
+            _ if input.starts_with("Sd") => StandardDeviation::from_ct(input).map(Indicator::Sd),
+            _ if input.starts_with("Sma") => {
+                SimpleMovingAverage::from_ct(input).map(Indicator::Sma)
+            }
+            _ if input.starts_with("Smma") => {
+                SmoothedMovingAverage::from_ct(input).map(Indicator::Smma)
+            }
+            _ if input.starts_with("Stoch") => {
+                StochasticOscillator::from_ct(input).map(Indicator::Stoch)
+            }
+            _ if input.starts_with("SuperTrend") => {
+                SuperTrend::from_ct(input).map(Indicator::SuperTrend)
+            }
+            _ if input.starts_with("Tr") => TrueRange::from_ct(input).map(Indicator::Tr),
+            _ if input.starts_with("WilliamsR") => {
+                WilliamsR::from_ct(input).map(Indicator::WilliamsR)
+            }
+            _ => Err(LangError::ParseError(format!(
+                "Unknown indicator type: {input}"
+            ))),
+        }
+    }
+
+    fn from_pair(pair: Pair<Rule>) -> LangResult<Self> {
+        match pair.as_rule() {
+            Rule::None => Ok(Indicator::none()),
+            Rule::Alligator => Alligator::from_pair(pair).map(Indicator::Alligator),
+            Rule::Ao => AwesomeOscillator::from_pair(pair).map(Indicator::Ao),
+            Rule::Atr => AverageTrueRange::from_pair(pair).map(Indicator::Atr),
+            Rule::Bb => BollingerBands::from_pair(pair).map(Indicator::Bb),
+            Rule::Ema => ExponentialMovingAverage::from_pair(pair).map(Indicator::Ema),
+            Rule::Kc => KeltnerChannel::from_pair(pair).map(Indicator::Kc),
+            Rule::Macd => MovingAverageConvergenceDivergence::from_pair(pair).map(Indicator::Macd),
+            Rule::Mae => MeanAbsoluteError::from_pair(pair).map(Indicator::Mae),
+            Rule::Obv => OnBalanceVolume::from_pair(pair).map(Indicator::Obv),
+            Rule::Rsi => RelativeStrengthIndex::from_pair(pair).map(Indicator::Rsi),
+            Rule::Sd => StandardDeviation::from_pair(pair).map(Indicator::Sd),
+            Rule::Sma => SimpleMovingAverage::from_pair(pair).map(Indicator::Sma),
+            Rule::Smma => SmoothedMovingAverage::from_pair(pair).map(Indicator::Smma),
+            Rule::Stoch => StochasticOscillator::from_pair(pair).map(Indicator::Stoch),
+            Rule::SuperTrend => SuperTrend::from_pair(pair).map(Indicator::SuperTrend),
+            Rule::Tr => TrueRange::from_pair(pair).map(Indicator::Tr),
+            Rule::WilliamsR => WilliamsR::from_pair(pair).map(Indicator::WilliamsR),
+            _ => Err(LangError::ParseError(format!(
+                "Unexpected rule for Indicator: {:?}",
+                pair.as_rule()
+            ))),
+        }
+    }
+
+    fn to_ct(&self) -> String {
+        match self {
+            Self::None(_) => "None()".to_string(),
+            Self::Alligator(indicator) => indicator.to_ct(),
+            Self::Ao(indicator) => indicator.to_ct(),
+            Self::Atr(indicator) => indicator.to_ct(),
+            Self::Bb(indicator) => indicator.to_ct(),
+            Self::Ema(indicator) => indicator.to_ct(),
+            Self::Kc(indicator) => indicator.to_ct(),
+            Self::Macd(indicator) => indicator.to_ct(),
+            Self::Mae(indicator) => indicator.to_ct(),
+            Self::Obv(indicator) => indicator.to_ct(),
+            Self::Rsi(indicator) => indicator.to_ct(),
+            Self::Sd(indicator) => indicator.to_ct(),
+            Self::Sma(indicator) => indicator.to_ct(),
+            Self::Smma(indicator) => indicator.to_ct(),
+            Self::Stoch(indicator) => indicator.to_ct(),
+            Self::SuperTrend(indicator) => indicator.to_ct(),
+            Self::Tr(indicator) => indicator.to_ct(),
+            Self::WilliamsR(indicator) => indicator.to_ct(),
+        }
+    }
+}
+
 impl Reset for NoneIndicator {
     fn reset(&mut self) {}
 }
@@ -602,7 +710,7 @@ impl Indicator {
     /// let indicator = Indicator::none();
     /// ```
     pub fn none() -> Self {
-        Self::None(NoneIndicator)
+        Self::None(NoneIndicator {})
     }
 
     /// Creates a new Exponential Moving Average indicator.
@@ -916,11 +1024,11 @@ impl Indicator {
     ///
     /// # Arguments
     /// * `period` - Period for calculation (must be > 1)
-    /// 
+    ///
     /// # Returns
     /// * `Ok(Indicator)` - Successfully created SMMA indicator
     /// * `Err(TaError)` - If period is 0, 1 or invalid
-    /// 
+    ///
     /// # Example
     /// ```rust
     /// let smma = Indicator::smma(14)?;

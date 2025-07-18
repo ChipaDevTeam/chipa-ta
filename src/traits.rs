@@ -38,12 +38,11 @@ pub trait Candle: Clone + Debug + Sized {
 
 pub trait IndicatorTrait: Clone + Debug + Reset + Default + PartialEq + Period + Display {
     fn output_shape(&self) -> OutputShape;
-    
+
     fn name(&self) -> String {
         self.to_string()
-    }    
+    }
 }
-
 
 pub trait Next<T> {
     type Output;
@@ -63,10 +62,8 @@ pub trait Reset {
     fn reset(&mut self);
 }
 
-
 pub trait Period {
     fn period(&self) -> usize;
 }
-
 
 pub trait Output {}

@@ -27,14 +27,14 @@ pub enum OutputShape {
 impl fmt::Display for OutputShape {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OutputShape::Shape(size) => write!(f, "Shape({})", size),
+            OutputShape::Shape(size) => write!(f, "Shape({size})"),
             OutputShape::Tensor(shapes) => {
                 write!(f, "Tensor(")?;
                 for (i, shape) in shapes.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", shape)?;
+                    write!(f, "{shape}")?;
                 }
                 write!(f, ")")
             }

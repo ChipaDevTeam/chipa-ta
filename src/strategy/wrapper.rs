@@ -1,9 +1,12 @@
 use core::fmt;
+use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
-use serde::{Serialize, Deserialize};
 
 use crate::{
-    error::{TaError, TaResult}, indicators::indicator::Indicator as IndicatorEnum, traits::{IndicatorTrait as Indicator, Next, Period, Reset}, types::{OutputShape, OutputType}
+    error::{TaError, TaResult},
+    indicators::indicator::Indicator as IndicatorEnum,
+    traits::{IndicatorTrait as Indicator, Next, Period, Reset},
+    types::{OutputShape, OutputType},
 };
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -84,9 +87,9 @@ impl IndicatorState {
 
     /// Returns the previous output as a Result, or an error if not available.
     pub fn prev(&self) -> TaResult<OutputType> {
-        self.previous_output.clone().ok_or_else(|| {
-            TaError::NotInitialized("No previous output available".to_string())
-        })
+        self.previous_output
+            .clone()
+            .ok_or_else(|| TaError::NotInitialized("No previous output available".to_string()))
     }
 }
 

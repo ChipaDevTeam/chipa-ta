@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +12,27 @@ use crate::{
     types::Queue,
 };
 
+#[allow(clippy::duplicated_attributes)]
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(
+        grammar(Alligator(
+            jaw_period,
+            jaw_shift,
+            teeth_period,
+            teeth_shift,
+            lips_period,
+            lips_shift
+        )),
+        may_fail
+    )
+)]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(wrapper(AlligatorWrapper(usize, usize, usize, usize, usize, usize)))
+)]
 pub struct Alligator {
     jaw: SmoothedMovingAverage,
     teeth: SmoothedMovingAverage,
@@ -17,6 +40,30 @@ pub struct Alligator {
     jaw_buffer: Queue<f64>,
     teeth_buffer: Queue<f64>,
     lips_buffer: Queue<f64>,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct AlligatorWrapper {
+    jaw_period: usize,
+    jaw_shift: usize,
+    teeth_period: usize,
+    teeth_shift: usize,
+    lips_period: usize,
+    lips_shift: usize,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&Alligator> for AlligatorWrapper {
+    fn from(alligator: &Alligator) -> Self {
+        Self {
+            jaw_period: alligator.jaw.period(),
+            jaw_shift: alligator.jaw_buffer.period(),
+            teeth_period: alligator.teeth.period(),
+            teeth_shift: alligator.teeth_buffer.period(),
+            lips_period: alligator.lips.period(),
+            lips_shift: alligator.lips_buffer.period(),
+        }
+    }
 }
 
 /// Custom implementation of the Serialize and Deserialize traits for Alligator
@@ -174,7 +221,6 @@ impl Reset for Alligator {
         self.lips_buffer = Queue::new(self.lips_buffer.period()).unwrap();
     }
 }
-
 
 impl fmt::Display for Alligator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

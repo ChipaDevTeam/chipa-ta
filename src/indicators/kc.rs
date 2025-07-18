@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -11,10 +14,35 @@ use crate::{
 use super::{AverageTrueRange as Atr, ExponentialMovingAverage as Ema};
 
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(
+        grammar(Kc(period, multiplier)),
+        wrapper(KeltnerChannelWrapper(usize, f64)),
+        may_fail
+    )
+)]
 pub struct KeltnerChannel {
     multiplier: f64,
     atr: Atr,
     ema: Ema,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct KeltnerChannelWrapper {
+    period: usize,
+    multiplier: f64,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&KeltnerChannel> for KeltnerChannelWrapper {
+    fn from(kc: &KeltnerChannel) -> Self {
+        KeltnerChannelWrapper {
+            period: kc.ema.period(),
+            multiplier: kc.multiplier,
+        }
+    }
 }
 
 /// Custom implementation of the Deserialize trait for KeltnerChannel

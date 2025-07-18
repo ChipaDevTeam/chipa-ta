@@ -1,13 +1,44 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::TaResult, indicators::{ExponentialMovingAverage, TrueRange}, traits::{Candle, IndicatorTrait, Next, Period, Reset}, types::OutputShape};
+use crate::{
+    error::TaResult,
+    indicators::{ExponentialMovingAverage, TrueRange},
+    traits::{Candle, IndicatorTrait, Next, Period, Reset},
+    types::OutputShape,
+};
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(
+        grammar(Atr(period)),
+        wrapper(AverageTrueRangeWrapper(usize)),
+        may_fail
+    )
+)]
 pub struct AverageTrueRange {
     true_range: TrueRange,
     ema: ExponentialMovingAverage,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct AverageTrueRangeWrapper {
+    period: usize,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&AverageTrueRange> for AverageTrueRangeWrapper {
+    fn from(atr: &AverageTrueRange) -> Self {
+        AverageTrueRangeWrapper {
+            period: atr.ema.period(),
+        }
+    }
 }
 
 /// Custom implementation of the Serialize and Deserialize traits for AverageTrueRange
@@ -37,8 +68,7 @@ impl<'de> Deserialize<'de> for AverageTrueRange {
             period: usize,
         }
         let visitor = AtrVisitor::deserialize(deserializer)?;
-        Self::new(visitor.period)
-            .map_err(serde::de::Error::custom)
+        Self::new(visitor.period).map_err(serde::de::Error::custom)
     }
 }
 
@@ -145,6 +175,6 @@ mod tests {
     #[test]
     fn test_display() {
         let indicator = AverageTrueRange::new(8).unwrap();
-        assert_eq!(format!("{}", indicator), "ATR(8)");
+        assert_eq!(format!("{indicator}"), "ATR(8)");
     }
 }

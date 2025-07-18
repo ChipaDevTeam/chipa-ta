@@ -31,7 +31,6 @@ pub use stoch::StochasticOscillator;
 pub use super_trend::SuperTrend;
 pub use tr::TrueRange;
 
-
 pub use serde::{Deserialize, Serialize};
 #[cfg(feature = "js")]
 pub mod js {
@@ -788,8 +787,7 @@ mod indicators_test {
             let serialized = serde_json::to_string(&indicator).unwrap();
             assert_eq!(
                 serialized, expected_json,
-                "Serialized output mismatch for {:?}",
-                indicator
+                "Serialized output mismatch for {indicator:?}"
             );
         }
     }
@@ -845,8 +843,7 @@ mod indicators_test {
             let indicator: Indicator = serde_json::from_str(json).unwrap();
             assert_eq!(
                 indicator, expected_indicator,
-                "Deserialized indicator mismatch for json: {}",
-                json
+                "Deserialized indicator mismatch for json: {json}"
             );
         }
     }

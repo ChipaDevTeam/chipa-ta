@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -10,10 +13,36 @@ use crate::{
 
 use super::SimpleMovingAverage as Sma;
 
+#[allow(clippy::duplicated_attributes)]
 #[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(
+        grammar(Ao(short_period, long_period)),
+        wrapper(AwesomeOscillatorWrapper(usize, usize)),
+        may_fail
+    )
+)]
 pub struct AwesomeOscillator {
     long_sma: Sma,
     short_sma: Sma,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct AwesomeOscillatorWrapper {
+    short_period: usize,
+    long_period: usize,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&AwesomeOscillator> for AwesomeOscillatorWrapper {
+    fn from(ao: &AwesomeOscillator) -> Self {
+        AwesomeOscillatorWrapper {
+            short_period: ao.short_sma.period(),
+            long_period: ao.long_sma.period(),
+        }
+    }
 }
 
 /// Custom implementation of the Deserialize trait for AwesomeOscillator

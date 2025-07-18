@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -10,6 +13,8 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Tr())))]
 pub struct TrueRange {
     #[serde(skip_serializing_if = "Option::is_none")]
     prev_close: Option<f64>,
@@ -126,7 +131,7 @@ mod tests {
     #[test]
     fn test_display() {
         let indicator = TrueRange::new();
-        assert_eq!(format!("{}", indicator), "TRUE_RANGE()");
+        assert_eq!(format!("{indicator}"), "TRUE_RANGE()");
     }
 
     #[test]

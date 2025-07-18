@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -9,9 +12,28 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(
+    feature = "chipa_lang",
+    ct(grammar(WilliamsR(period)), wrapper(WilliamsRWrapper(usize)), may_fail)
+)]
 pub struct WilliamsR {
     highs: Queue<f64>,
     lows: Queue<f64>,
+}
+
+#[cfg(feature = "chipa_lang")]
+struct WilliamsRWrapper {
+    period: usize,
+}
+
+#[cfg(feature = "chipa_lang")]
+impl From<&WilliamsR> for WilliamsRWrapper {
+    fn from(williams: &WilliamsR) -> Self {
+        Self {
+            period: williams.period(),
+        }
+    }
 }
 
 impl Default for WilliamsR {

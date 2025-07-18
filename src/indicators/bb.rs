@@ -1,6 +1,9 @@
 // Bollinger Bands indicator implementation for chipa-ta
 // Based on ta-rs and TA-Lib
 
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -12,6 +15,8 @@ use crate::traits::{Next, Period, Reset};
 use crate::types::OutputShape;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Bb(period, multiplier)), may_fail))]
 pub struct BollingerBands {
     period: usize,
     multiplier: f64,
@@ -197,6 +202,6 @@ mod tests {
     #[test]
     fn test_display() {
         let bb = BollingerBands::new(10, 3.0_f64).unwrap();
-        assert_eq!(format!("{}", bb), "BB(10, 3)");
+        assert_eq!(format!("{bb}"), "BB(10, 3)");
     }
 }

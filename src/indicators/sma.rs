@@ -1,3 +1,6 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_lang_utils::Lang;
+
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -10,6 +13,8 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "chipa_lang", derive(Lang))]
+#[cfg_attr(feature = "chipa_lang", ct(grammar(Sma(period)), may_fail))]
 pub struct SimpleMovingAverage {
     // index: Cycle,
     period: usize,
@@ -132,7 +137,7 @@ mod tests {
     #[test]
     fn test_display() {
         let sma = SimpleMovingAverage::new(5).unwrap();
-        assert_eq!(format!("{}", sma), "SMA(5)");
+        assert_eq!(format!("{sma}"), "SMA(5)");
     }
 
     #[test]

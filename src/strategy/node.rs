@@ -78,7 +78,11 @@ impl StrategyNode {
                 then_branch.update(data)?;
                 Ok(())
             }
-            StrategyNode::If { condition, then_branch, else_branch } => {
+            StrategyNode::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
                 condition.update(data)?;
                 then_branch.update(data)?;
                 if let Some(else_node) = else_branch {
@@ -288,7 +292,7 @@ impl Reset for StrategyNode {
             StrategyNode::Preprocess { step, then_branch } => {
                 step.reset();
                 then_branch.reset();
-            },
+            }
             StrategyNode::If {
                 then_branch,
                 else_branch,
@@ -553,7 +557,8 @@ mod tests {
         // ************************************************************************
 
         // Strong Buy condition: RSI is showing very strong momentum.
-        let strong_buy_condition = Condition::greater_than(Indicator::rsi(14)?, OutputType::Single(65.0));
+        let strong_buy_condition =
+            Condition::greater_than(Indicator::rsi(14)?, OutputType::Single(65.0));
 
         // Base Buy conditions:
         // 1. Price is above the medium-term trend (SMA50).
@@ -585,7 +590,8 @@ mod tests {
         // ************************************************************************
 
         // Strong Sell condition: RSI is showing very strong bearish momentum.
-        let strong_sell_condition = Condition::less_than(Indicator::rsi(14)?, OutputType::Single(35.0));
+        let strong_sell_condition =
+            Condition::less_than(Indicator::rsi(14)?, OutputType::Single(35.0));
 
         // Base Sell conditions:
         // 1. Price is below the medium-term trend (SMA50).
@@ -673,19 +679,28 @@ mod tests {
             // 4. Awesome Oscillator confirms bullish momentum.
             Condition::greater_than(ao.clone(), OutputType::Single(0.0)),
             // 5. MACD line is above its signal line.
-            Condition::greater_than(macd.clone(), OutputType::Custom(vec![
-                OutputType::Single(0.0),
-                OutputType::Static(Statics::True),
-                OutputType::Static(Statics::True),
-            ])), // equivalent to MACD Line > Signal Line
+            Condition::greater_than(
+                macd.clone(),
+                OutputType::Custom(vec![
+                    OutputType::Single(0.0),
+                    OutputType::Static(Statics::True),
+                    OutputType::Static(Statics::True),
+                ]),
+            ), // equivalent to MACD Line > Signal Line
             // 6. Price is near the lower Bollinger Band.
-            Condition::less_than(bb.clone(), OutputType::Custom(vec![
-                OutputType::Static(Statics::True),
-                OutputType::Static(Statics::True),
-                OutputType::Close,
-            ])), // equivalent to Close < BB Lower Band
+            Condition::less_than(
+                bb.clone(),
+                OutputType::Custom(vec![
+                    OutputType::Static(Statics::True),
+                    OutputType::Static(Statics::True),
+                    OutputType::Close,
+                ]),
+            ), // equivalent to Close < BB Lower Band
             // 7. SuperTrend is bullish.
-            Condition::less_than(super_trend.clone(), OutputType::Custom(vec![OutputType::Close, OutputType::Close])), // equivalent to Close > SuperTrend
+            Condition::less_than(
+                super_trend.clone(),
+                OutputType::Custom(vec![OutputType::Close, OutputType::Close]),
+            ), // equivalent to Close > SuperTrend
         ]);
 
         // --- SHORT CONDITIONS (SELL) ---
@@ -701,19 +716,28 @@ mod tests {
             // 5. MACD line is below its signal line.
             Condition::less_than(macd, OutputType::Array(vec![0.0, 0.0, 0.0])),
             // 6. Price is near the upper Bollinger Band.
-            Condition::greater_than(bb, OutputType::Custom(vec![
+            Condition::greater_than(
+                bb,
+                OutputType::Custom(vec![
                     OutputType::Static(Statics::True),
                     OutputType::Close,
                     OutputType::Static(Statics::True),
-                ])), // equivalent to Close > BB Upper Band
+                ]),
+            ), // equivalent to Close > BB Upper Band
             // 7. SuperTrend is bearish.
-            Condition::greater_than(super_trend, OutputType::Custom(vec![OutputType::Close, OutputType::Close])), // equivalent to Close < SuperTrend
+            Condition::greater_than(
+                super_trend,
+                OutputType::Custom(vec![OutputType::Close, OutputType::Close]),
+            ), // equivalent to Close < SuperTrend
             // 8. Price is near the Keltner Channel upper band.
-            Condition::greater_than(kc, OutputType::Custom(vec![
-                OutputType::Close,
-                OutputType::Static(Statics::True),
-                OutputType::Static(Statics::True),
-            ])), // equivalent to Close > KC Upper Band
+            Condition::greater_than(
+                kc,
+                OutputType::Custom(vec![
+                    OutputType::Close,
+                    OutputType::Static(Statics::True),
+                    OutputType::Static(Statics::True),
+                ]),
+            ), // equivalent to Close > KC Upper Band
         ]);
 
         // --- STRATEGY TREE ---
@@ -736,7 +760,6 @@ mod tests {
             serde_json::to_string_pretty(&strategy)?
         );
 
-
         println!(
             "Advanced Strategy V2 Max Period: {:?}",
             strategy.max_period()
@@ -756,7 +779,7 @@ mod tests {
         // Note: The first `period` evaluations will not be reliable as indicators warm up.
         // A full test would involve iterating over a historical dataset.
         let action = strategy.evaluate(&data)?;
-        println!("Action for first data point: {:?}", action);
+        println!("Action for first data point: {action:?}");
 
         // A simple assertion that it runs without error.
         // The actual action depends on the warm-up state of the indicators.
@@ -766,20 +789,42 @@ mod tests {
         ));
 
         let files = [
-            ("tests/formats/advanced_confluence_strategy_v2.json", serde_json::to_string_pretty(&strategy)?.into_bytes()),
-            ("tests/formats/advanced_confluence_strategy_v2.msgpack", rmp_serde::to_vec(&strategy).unwrap()),
-            ("tests/formats/advanced_confluence_strategy_v2.ron", ron::to_string(&strategy).unwrap().into_bytes()),
-            ("tests/formats/advanced_confluence_strategy_v2.yaml", serde_yaml::to_string(&strategy).unwrap().into_bytes()),
-            ("tests/formats/advanced_confluence_strategy_v2.toml", toml::to_string(&strategy).unwrap().into_bytes()),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.json",
+                serde_json::to_string_pretty(&strategy)?.into_bytes(),
+            ),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.msgpack",
+                rmp_serde::to_vec(&strategy).unwrap(),
+            ),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.ron",
+                ron::to_string(&strategy).unwrap().into_bytes(),
+            ),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.yaml",
+                serde_yaml::to_string(&strategy).unwrap().into_bytes(),
+            ),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.toml",
+                toml::to_string(&strategy).unwrap().into_bytes(),
+            ),
             // ("tests/formats/advanced_confluence_strategy_v2.xml", quick_xml::se::to_string(&strategy).unwrap().into_bytes()),
-            ("tests/formats/advanced_confluence_strategy_v2.cbor", serde_cbor::to_vec(&strategy).unwrap()),
-            ("tests/formats/advanced_confluence_strategy_v2.pickle", serde_pickle::to_vec(&strategy, serde_pickle::SerOptions::new().proto_v2()).unwrap()),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.cbor",
+                serde_cbor::to_vec(&strategy).unwrap(),
+            ),
+            (
+                "tests/formats/advanced_confluence_strategy_v2.pickle",
+                serde_pickle::to_vec(&strategy, serde_pickle::SerOptions::new().proto_v2())
+                    .unwrap(),
+            ),
             // ("tests/formats/advanced_confluence_strategy_v2.starlark", serde_starlark::to_string(&strategy).unwrap().into_bytes()),
             // ("tests/formats/advanced_confluence_strategy_v2.msg", serde_rosmsg::to_vec(&strategy).unwrap()),
         ];
         for (path, content) in files {
             std::fs::write(path, content)
-                .unwrap_or_else(|_| panic!("Failed to write strategy to {}", path));
+                .unwrap_or_else(|_| panic!("Failed to write strategy to {path}"));
         }
         Ok(())
     }
@@ -844,7 +889,7 @@ mod tests {
         let data = MarketData::Bar(bar);
         // First run, no crossover yet.
         let action1 = strategy.evaluate(&data)?;
-        println!("Action 1: {:?}", action1);
+        println!("Action 1: {action1:?}");
         assert_eq!(action1, Action::Hold); // Should be Hold as crossover cannot happen on first tick.
 
         // To properly test, we need a sequence of data that triggers a crossover.
