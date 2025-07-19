@@ -6,7 +6,7 @@ use chipa_lang_utils::{
 
 use core::fmt;
 
-use chipa_ta_macros::AutoImpl;
+use chipa_ta_macros::{AutoImpl, register_trait};
 use serde::{Deserialize, Serialize};
 
 use crate::indicators::alligator::Alligator;
@@ -17,7 +17,6 @@ use crate::indicators::sd::StandardDeviation;
 use crate::indicators::smma::SmoothedMovingAverage;
 use crate::indicators::williams_r::WilliamsR;
 use crate::indicators::{BollingerBands, MeanAbsoluteError, StochasticOscillator};
-use crate::traits::IndicatorTrait;
 use crate::types::OutputShape;
 use crate::{
     error::TaResult,
@@ -25,9 +24,34 @@ use crate::{
         AverageTrueRange, ExponentialMovingAverage, MovingAverageConvergenceDivergence,
         RelativeStrengthIndex, SimpleMovingAverage, SuperTrend, TrueRange,
     },
-    traits::{Candle, Next, Period, Reset},
+    traits::{Candle, Next},
     types::OutputType,
 };
+
+register_trait! {
+    pub trait IndicatorTrait: Clone + fmt::Debug + Reset + Default + PartialEq + Period + fmt::Display {
+        fn output_shape(&self) -> OutputShape;
+
+        fn name(&self) -> String {
+            self.to_string()
+        }
+    }
+}
+
+
+register_trait! {
+    /// Resets an indicator to the initial state.
+    pub trait Reset {
+        fn reset(&mut self);
+    }
+}
+
+register_trait! {
+    pub trait Period {
+        fn period(&self) -> usize;
+    }
+}
+
 /// A unified enum for all technical analysis indicators supported by the library.
 ///
 /// The `Indicator` enum provides a type-safe way to work with different technical indicators
@@ -75,7 +99,7 @@ use crate::{
 /// let restored: Indicator = serde_json::from_str(&json)?;
 /// ```
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, AutoImpl)]
-#[auto_implement(path = "src/traits.rs")]
+// #[auto_implement(path = "src/traits.rs")]
 #[auto_implement(trait = Period)]
 #[auto_implement(trait = Reset)]
 #[auto_implement(trait = IndicatorTrait)]
@@ -622,6 +646,10 @@ impl Lang for Indicator {
 
     fn from_pair(pair: Pair<Rule>) -> LangResult<Self> {
         match pair.as_rule() {
+            Rule::indicator => {
+                let inner = pair.into_inner().next().ok_or(LangError::ParseError("Empty indicator".to_string()))?;
+                Indicator::from_pair(inner)
+            }
             Rule::None => Ok(Indicator::none()),
             Rule::Alligator => Alligator::from_pair(pair).map(Indicator::Alligator),
             Rule::Ao => AwesomeOscillator::from_pair(pair).map(Indicator::Ao),

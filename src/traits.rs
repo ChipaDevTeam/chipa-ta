@@ -1,6 +1,7 @@
-use crate::{error::TaResult, helper_types::Bar, types::OutputShape};
+use crate::{error::TaResult, helper_types::Bar};
 use core::{f64, fmt::Debug};
-use std::fmt::Display;
+
+pub use crate::indicators::indicator::{IndicatorTrait, Period, Reset};
 
 pub trait Candle: Clone + Debug + Sized {
     fn open(&self) -> f64 {
@@ -36,13 +37,6 @@ pub trait Candle: Clone + Debug + Sized {
     }
 }
 
-pub trait IndicatorTrait: Clone + Debug + Reset + Default + PartialEq + Period + Display {
-    fn output_shape(&self) -> OutputShape;
-
-    fn name(&self) -> String {
-        self.to_string()
-    }
-}
 
 pub trait Next<T> {
     type Output;
@@ -57,13 +51,5 @@ pub trait Next<T> {
     }
 }
 
-/// Resets an indicator to the initial state.
-pub trait Reset {
-    fn reset(&mut self);
-}
-
-pub trait Period {
-    fn period(&self) -> usize;
-}
 
 pub trait Output {}
