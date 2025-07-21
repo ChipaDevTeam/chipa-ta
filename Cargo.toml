@@ -12,7 +12,7 @@ name = "stubgen"
 path = "src/stubgen.rs"
 
 [features]
-default = ["strategy","js"]
+default = ["strategy","chipa_lang"]
 js = ["dep:napi","dep:napi-derive","dep:napi-build"]
 py = ["dep:pyo3-stub-gen","dep:pyo3"]
 strategy = ["dep:async-trait","dep:chrono"]
