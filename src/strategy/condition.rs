@@ -3,8 +3,12 @@ use crate::{
     strategy::{wrapper::IndicatorState, MarketData, StrategyError},
     traits::{IndicatorTrait, Period, Reset},
     types::OutputType,
-    Indicator,
 };
+#[cfg(feature = "js")]
+use crate::indicators::indicator::Indicator;
+#[cfg(not(feature = "js"))]
+use crate::Indicator;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -70,10 +74,22 @@ pub enum Operator {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Condition {
+    /// Compares two values using an operator.
+    ValueOnly {
+        left: OutputType,
+        right: OutputType,
+        operator: Operator,
+    },
     /// Compares an indicator to a value using an operator.
     Value {
         indicator: Box<IndicatorState>,
         value: OutputType,
+        operator: Operator,
+    },
+    /// Compares an indicator to a value using an operator (inverted).
+    ValueInversed {
+        value: OutputType,
+        indicator: Box<IndicatorState>,
         operator: Operator,
     },
     /// Compares two indicators using an operator.
@@ -94,9 +110,20 @@ impl Condition {
     /// Validate the condition
     pub fn validate(&self) -> TaResult<()> {
         match self {
+            Condition::ValueOnly { left, right, .. } => {
+                if left.output_shape()? != right.output_shape()? {
+                    return Err(TaError::Strategy(StrategyError::IncompatibleShapes {
+                        name: "Condition::ValueOnly".to_string(),
+                        indicator: left.output_shape()?,
+                        value: right.output_shape()?,
+                    }));
+                }
+                
+                Ok(())
+            }
             Condition::Value {
                 indicator, value, ..
-            } => {
+            } | Condition::ValueInversed { value, indicator, .. }=> {
                 if indicator.period() == 0 {
                     return Err(TaError::Strategy(StrategyError::InvalidIndicatorPeriod {
                         period: 0,
@@ -138,7 +165,7 @@ impl Condition {
 
     pub fn update(&mut self, data: &MarketData) -> TaResult<()> {
         match self {
-            Condition::Value { indicator, .. } => indicator.update(data),
+            Condition::Value { indicator, .. } | Condition::ValueInversed { indicator, .. }=> indicator.update(data),
             Condition::Indicator { left, right, .. } => {
                 left.update(data)?;
                 right.update(data)?;
@@ -151,6 +178,7 @@ impl Condition {
                 Ok(())
             }
             Condition::Not(c) => c.update(data),
+            Condition::ValueOnly { .. } => Ok(())
         }
     }
 
@@ -162,6 +190,9 @@ impl Condition {
             //     let rhs = value.resolve(data)?;
             //     Ok(lhs.gt(&rhs))
             // }
+            Condition::ValueOnly { left, right, operator } => {
+                operator.evaluate(&left.resolve(data)?, &right.resolve(data)?)
+            },
             Condition::Value {
                 indicator,
                 value,
@@ -170,7 +201,12 @@ impl Condition {
                 let lhs = indicator.prev()?;
                 let rhs = value.resolve(data)?;
                 operator.evaluate(&lhs, &rhs)
-            }
+            },
+            Condition::ValueInversed { value, indicator, operator } => {
+                let lhs = value.resolve(data)?;
+                let rhs = indicator.prev()?;
+                operator.evaluate(&rhs, &lhs)
+            },
             Condition::Indicator {
                 left,
                 right,
@@ -203,7 +239,8 @@ impl Condition {
     /// Returns the maximum indicator period contained in this condition or `None` if no indicators.
     pub fn max_period(&self) -> Option<usize> {
         match self {
-            Condition::Value { indicator, .. } => Some(indicator.period()),
+            Condition::ValueOnly { .. } => None,
+            Condition::Value { indicator, .. } | Condition::ValueInversed { indicator, .. } => Some(indicator.period()),
             Condition::Indicator { left, right, .. } => Some(left.period().max(right.period())),
             Condition::And(conds) | Condition::Or(conds) => {
                 conds.iter().filter_map(|c| c.max_period()).max()
@@ -320,7 +357,19 @@ impl Period for Condition {
 impl Reset for Condition {
     fn reset(&mut self) {
         match self {
+            Condition::ValueOnly { operator, .. } => {
+                match operator {
+                    Operator::CrossOver(prev_value) | Operator::CrossUnder(prev_value) => {
+                        *prev_value = None; // Reset crossover state
+                    }
+                    _ => {}
+                }
+            }
             Condition::Value {
+                indicator,
+                operator,
+                ..
+            } | Condition::ValueInversed {
                 indicator,
                 operator,
                 ..

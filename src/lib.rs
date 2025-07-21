@@ -11,10 +11,11 @@ pub mod types;
 
 pub mod helper_types;
 
-pub use indicators::Indicator;
+#[cfg(not(feature = "js"))]
+pub use indicators::indicator::Indicator;
 
 #[cfg(feature = "js")]
-pub use indicators::js::{CandleJs, IndicatorJs};
+pub use indicators::js::{Candle, Indicator};
 
 #[cfg(feature = "py")]
 mod py {

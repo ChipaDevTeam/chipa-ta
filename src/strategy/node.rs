@@ -5,11 +5,14 @@ use crate::strategy::{Action, Condition, MarketData};
 use crate::traits::{Period, Reset};
 use serde::{Deserialize, Serialize};
 
+
 /// Aggregation modes for `Sequence` nodes.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SequenceMode {
     /// Return the first action-producing node's result (default behavior).
     First,
+    /// Returns the last action-producing node's result.
+    Last,
     /// Return the first non-Hold action encountered.
     Any,
     /// Return an action only if all action-producing nodes agree; otherwise Hold.
@@ -139,10 +142,13 @@ impl StrategyNode {
                     }
                 }
                 // Aggregate actions per mode
-                let chosen = match mode {
+                let chosen = match mode { 
                     SequenceMode::First | SequenceMode::Any => {
                         actions.into_iter().next().unwrap_or(Action::Hold)
-                    }
+                    },
+                    SequenceMode::Last => {
+                        actions.into_iter().next_back().unwrap_or(Action::Hold)
+                    },
                     SequenceMode::All => {
                         if let Some(first) = actions.first() {
                             if actions.iter().all(|a| a == first) {
@@ -322,10 +328,14 @@ impl Reset for StrategyNode {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "js")]
+    use crate::indicators::indicator::Indicator;
+    #[cfg(not(feature = "js"))]
+    use crate::Indicator;
+
     use super::*;
     use crate::helper_types::Bar;
     use crate::types::{OutputType, Statics};
-    use crate::Indicator;
     use serde_json;
 
     #[test]

@@ -21,7 +21,6 @@ pub mod williams_r;
 pub use atr::AverageTrueRange;
 pub use bb::BollingerBands;
 pub use ema::ExponentialMovingAverage;
-pub use indicator::Indicator;
 pub use macd::MovingAverageConvergenceDivergence;
 pub use mae::MeanAbsoluteError;
 pub use rsi::RelativeStrengthIndex;
@@ -35,11 +34,11 @@ pub use serde::{Deserialize, Serialize};
 #[cfg(feature = "js")]
 pub mod js {
     use crate::{
-        indicators::indicator::NoneIndicator, traits::Candle, traits::Next, types::OutputType,
+        indicators::indicator::NoneIndicator, traits::Candle as CandleRs, traits::Next, types::OutputType,
     };
 
-    use super::*;
-    use napi::{Env, JsUnknown};
+    use super::{*, indicator::Indicator as IndicatorRs};
+    use napi::bindgen_prelude::*;
     use napi_derive::napi;
     /// Represents a financial candlestick with OHLCV (Open, High, Low, Close, Volume) data
     ///
@@ -50,9 +49,9 @@ pub mod js {
     /// * `open` - Opening price of the period
     /// * `close` - Closing price of the period
     /// * `volume` - Trading volume during the period
-    #[napi(js_name = "Candle")]
+    #[napi]
     #[derive(Clone, Serialize, Deserialize, Debug)]
-    pub struct CandleJs {
+    pub struct Candle {
         pub price: f64,
         pub high: f64,
         pub low: f64,
@@ -61,7 +60,7 @@ pub mod js {
         pub volume: f64,
     }
 
-    impl Candle for CandleJs {
+    impl CandleRs for Candle {
         /// Returns the closing price of the candle
         fn close(&self) -> f64 {
             self.close
@@ -94,7 +93,7 @@ pub mod js {
     }
 
     #[napi]
-    impl CandleJs {
+    impl Candle {
         /// Creates a new Candle instance with a single price value
         /// All OHLC values will be set to the given price, and volume will be set to 0
         ///
@@ -153,13 +152,13 @@ pub mod js {
         }
 
         #[napi(factory)]
-        pub fn from_string(json: JsUnknown, env: Env) -> napi::Result<Self> {
+        pub fn from_string(json: Unknown, env: Env) -> napi::Result<Self> {
             let candle = env.from_js_value(json)?;
             Ok(candle)
         }
 
         #[napi]
-        pub fn to_json(&self, env: Env) -> napi::Result<JsUnknown> {
+        pub fn to_json(&self, env: Env) -> napi::Result<Unknown> {
             env.to_js_value(&self)
         }
     }
@@ -167,7 +166,34 @@ pub mod js {
     /// JavaScript bindings for various financial indicators.
     ///
     /// This implementation exposes a set of constructors and methods to create and use technical indicators
-    /// from JavaScript via NAPI. Supported indicators include EMA, SMA, RSI, MACD, TR, ATR, and SuperTrend.
+    /// from JavaScript via NAPI. Supported indicators include:
+    ///
+    /// **Trend Following:**
+    /// - EMA (Exponential Moving Average)
+    /// - SMA (Simple Moving Average)
+    /// - SMMA (Smoothed Moving Average)
+    /// - Alligator (Three-line trend indicator)
+    /// - SuperTrend (Trend-following overlay)
+    ///
+    /// **Momentum & Oscillators:**
+    /// - RSI (Relative Strength Index)
+    /// - AO (Awesome Oscillator)
+    /// - STOCH (Stochastic Oscillator)
+    /// - Williams %R
+    ///
+    /// **Volatility:**
+    /// - ATR (Average True Range)
+    /// - TR (True Range)
+    /// - BB (Bollinger Bands)
+    /// - KC (Keltner Channel)
+    /// - SD (Standard Deviation)
+    ///
+    /// **Volume:**
+    /// - OBV (On-Balance Volume)
+    ///
+    /// **Other:**
+    /// - MACD (Moving Average Convergence Divergence)
+    /// - MAE (Mean Absolute Error)
     ///
     /// # Examples
     ///
@@ -200,15 +226,38 @@ pub mod js {
     /// ```
     ///
     /// # Methods
+    /// **Constructors:**
     /// - `new()` - Creates a new empty indicator.
     /// - `fromString(json)` - Restores an indicator from a JSON string.
+    ///
+    /// **Trend Indicators:**
     /// - `ema(period)` - Creates an Exponential Moving Average indicator.
     /// - `sma(period)` - Creates a Simple Moving Average indicator.
+    /// - `smma(period)` - Creates a Smoothed Moving Average indicator.
+    /// - `alligator(jaw_period, jaw_shift, teeth_period, teeth_shift, lips_period, lips_shift)` - Creates an Alligator indicator.
+    /// - `superTrend(multiplier, period)` - Creates a SuperTrend indicator.
+    ///
+    /// **Momentum Indicators:**
     /// - `rsi(period)` - Creates a Relative Strength Index indicator.
+    /// - `ao(short_period, long_period)` - Creates an Awesome Oscillator indicator.
+    /// - `stoch(period, smoothing_period)` - Creates a Stochastic Oscillator indicator.
+    /// - `williamsR(period)` - Creates a Williams %R indicator.
     /// - `macd(fast, slow, signal)` - Creates a MACD indicator.
+    ///
+    /// **Volatility Indicators:**
     /// - `tr()` - Creates a True Range indicator.
     /// - `atr(period)` - Creates an Average True Range indicator.
-    /// - `superTrend(multiplier, period)` - Creates a SuperTrend indicator.
+    /// - `bb(period, k)` - Creates a Bollinger Bands indicator.
+    /// - `kc(period, multiplier)` - Creates a Keltner Channel indicator.
+    /// - `sd(period)` - Creates a Standard Deviation indicator.
+    ///
+    /// **Volume Indicators:**
+    /// - `obv()` - Creates an On-Balance Volume indicator.
+    ///
+    /// **Other Indicators:**
+    /// - `mae(period)` - Creates a Mean Absolute Error indicator.
+    ///
+    /// **Methods:**
     /// - `toJson()` - Serializes the indicator to JSON.
     /// - `next(input)` - Calculates the next value for a single input.
     /// - `nextBatched(inputs)` - Calculates next values for an array of inputs.
@@ -216,14 +265,14 @@ pub mod js {
     /// - `nextCandles(candles)` - Calculates next values for an array of candles.
     ///
     /// All methods are available from JavaScript via the `Indicators` class.
-    #[napi(js_name = "Indicators")]
+    #[napi]
     #[derive(Clone)]
-    pub struct IndicatorJs {
-        inner: Indicator,
+    pub struct Indicator {
+        inner: IndicatorRs,
     }
 
-    impl Serialize for IndicatorJs {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    impl Serialize for Indicator {
+        fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
         where
             S: serde::Serializer,
         {
@@ -231,26 +280,26 @@ pub mod js {
         }
     }
 
-    impl<'de> Deserialize<'de> for IndicatorJs {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    impl<'de> Deserialize<'de> for Indicator {
+        fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
         where
             D: serde::Deserializer<'de>,
         {
-            let inner = Indicator::deserialize(deserializer)?;
+            let inner = IndicatorRs::deserialize(deserializer)?;
             Ok(Self { inner })
         }
     }
 
-    impl Default for IndicatorJs {
+    impl Default for Indicator {
         fn default() -> Self {
             Self {
-                inner: Indicator::None(NoneIndicator),
+                inner: IndicatorRs::None(NoneIndicator {}),
             }
         }
     }
 
     #[napi]
-    impl IndicatorJs {
+    impl Indicator {
         /// Creates a new empty Indicator instance
         ///
         /// # Example
@@ -273,8 +322,8 @@ pub mod js {
         /// const restored = Indicators.fromString(json);
         /// ```
         #[napi(factory)]
-        pub fn from_string(json: JsUnknown, env: Env) -> napi::Result<Self> {
-            let inner: Indicator = env.from_js_value(json)?;
+        pub fn from_string(json: Unknown, env: Env) -> napi::Result<Self> {
+            let inner: IndicatorRs = env.from_js_value(json)?;
             Ok(Self { inner })
         }
 
@@ -289,7 +338,7 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn ema(period: u32) -> napi::Result<Self> {
-            let inner = Indicator::ema(period as usize)?;
+            let inner = IndicatorRs::ema(period as usize)?;
             Ok(Self { inner })
         }
 
@@ -304,7 +353,7 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn sma(period: u32) -> napi::Result<Self> {
-            let inner = Indicator::sma(period as usize)?;
+            let inner = IndicatorRs::sma(period as usize)?;
             Ok(Self { inner })
         }
 
@@ -319,7 +368,7 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn rsi(period: u32) -> napi::Result<Self> {
-            let inner = Indicator::rsi(period as usize)?;
+            let inner = IndicatorRs::rsi(period as usize)?;
             Ok(Self { inner })
         }
 
@@ -336,7 +385,7 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn macd(fast_period: u32, slow_period: u32, signal_period: u32) -> napi::Result<Self> {
-            let inner = Indicator::macd(
+            let inner = IndicatorRs::macd(
                 fast_period as usize,
                 slow_period as usize,
                 signal_period as usize,
@@ -352,7 +401,7 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn tr() -> Self {
-            let inner = Indicator::tr();
+            let inner = IndicatorRs::tr();
             Self { inner }
         }
 
@@ -367,7 +416,7 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn atr(period: u32) -> napi::Result<Self> {
-            let inner = Indicator::atr(period as usize)?;
+            let inner = IndicatorRs::atr(period as usize)?;
             Ok(Self { inner })
         }
 
@@ -383,7 +432,177 @@ pub mod js {
         /// ```
         #[napi(factory)]
         pub fn super_trend(multiplier: f64, period: u32) -> napi::Result<Self> {
-            let inner = Indicator::super_trend(multiplier, period as usize)?;
+            let inner = IndicatorRs::super_trend(multiplier, period as usize)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates an Alligator indicator with custom parameters
+        ///
+        /// # Arguments
+        /// * `jaw_period` - The period for the jaw line (commonly 13)
+        /// * `jaw_shift` - Forward shift for the jaw line (commonly 8)
+        /// * `teeth_period` - The period for the teeth line (commonly 8)
+        /// * `teeth_shift` - Forward shift for the teeth line (commonly 5)
+        /// * `lips_period` - The period for the lips line (commonly 5)
+        /// * `lips_shift` - Forward shift for the lips line (commonly 3)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const alligator = Indicators.alligator(13, 8, 8, 5, 5, 3);
+        /// ```
+        #[napi(factory)]
+        pub fn alligator(
+            jaw_period: u32,
+            jaw_shift: u32,
+            teeth_period: u32,
+            teeth_shift: u32,
+            lips_period: u32,
+            lips_shift: u32,
+        ) -> napi::Result<Self> {
+            let inner = IndicatorRs::alligator(
+                jaw_period as usize,
+                jaw_shift as usize,
+                teeth_period as usize,
+                teeth_shift as usize,
+                lips_period as usize,
+                lips_shift as usize,
+            )?;
+            Ok(Self { inner })
+        }
+
+        /// Creates an Awesome Oscillator (AO) indicator
+        ///
+        /// # Arguments
+        /// * `short_period` - The period for the short SMA (commonly 5)
+        /// * `long_period` - The period for the long SMA (commonly 34)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const ao = Indicators.ao(5, 34);
+        /// ```
+        #[napi(factory)]
+        pub fn ao(short_period: u32, long_period: u32) -> napi::Result<Self> {
+            let inner = IndicatorRs::ao(short_period as usize, long_period as usize)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates a Bollinger Bands (BB) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for the moving average (commonly 20)
+        /// * `k` - The multiplier for the standard deviation (commonly 2.0)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const bb = Indicators.bb(20, 2.0);
+        /// ```
+        #[napi(factory)]
+        pub fn bb(period: u32, k: f64) -> napi::Result<Self> {
+            let inner = IndicatorRs::bb(period as usize, k)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates a Keltner Channel (KC) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for the EMA and ATR calculation (commonly 20)
+        /// * `multiplier` - The multiplier for the ATR (commonly 2.0)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const kc = Indicators.kc(20, 2.0);
+        /// ```
+        #[napi(factory)]
+        pub fn kc(period: u32, multiplier: f64) -> napi::Result<Self> {
+            let inner = IndicatorRs::kc(period as usize, multiplier)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates a Mean Absolute Error (MAE) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for error calculation
+        ///
+        /// # Example
+        /// ```javascript
+        /// const mae = Indicators.mae(14);
+        /// ```
+        #[napi(factory)]
+        pub fn mae(period: u32) -> napi::Result<Self> {
+            let inner = IndicatorRs::mae(period as usize)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates an On-Balance Volume (OBV) indicator
+        ///
+        /// # Example
+        /// ```javascript
+        /// const obv = Indicators.obv();
+        /// ```
+        #[napi(factory)]
+        pub fn obv() -> Self {
+            let inner = IndicatorRs::obv();
+            Self { inner }
+        }
+
+        /// Creates a Standard Deviation (SD) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for standard deviation calculation (commonly 20)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const sd = Indicators.sd(20);
+        /// ```
+        #[napi(factory)]
+        pub fn sd(period: u32) -> napi::Result<Self> {
+            let inner = IndicatorRs::sd(period as usize)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates a Smoothed Moving Average (SMMA) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for the SMMA calculation (commonly 14)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const smma = Indicators.smma(14);
+        /// ```
+        #[napi(factory)]
+        pub fn smma(period: u32) -> napi::Result<Self> {
+            let inner = IndicatorRs::smma(period as usize)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates a Stochastic Oscillator (STOCH) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for %K calculation (commonly 14)
+        /// * `smoothing_period` - The period for %D smoothing (commonly 3)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const stoch = Indicators.stoch(14, 3);
+        /// ```
+        #[napi(factory)]
+        pub fn stoch(period: u32, smoothing_period: u32) -> napi::Result<Self> {
+            let inner = IndicatorRs::stoch(period as usize, smoothing_period as usize)?;
+            Ok(Self { inner })
+        }
+
+        /// Creates a Williams %R (WILLR) indicator
+        ///
+        /// # Arguments
+        /// * `period` - The period for Williams %R calculation (commonly 14)
+        ///
+        /// # Example
+        /// ```javascript
+        /// const williamsR = Indicators.williamsR(14);
+        /// ```
+        #[napi(factory)]
+        pub fn williams_r(period: u32) -> napi::Result<Self> {
+            let inner = IndicatorRs::williams_r(period as usize)?;
             Ok(Self { inner })
         }
 
@@ -395,7 +614,7 @@ pub mod js {
         /// const json = indicator.toJson();
         /// ```
         #[napi]
-        pub fn to_json(&self, env: Env) -> napi::Result<JsUnknown> {
+        pub fn to_json(&self, env: Env) -> napi::Result<Unknown> {
             env.to_js_value(&self)
         }
 
@@ -413,20 +632,22 @@ pub mod js {
         /// const value = rsi.next(100);
         /// ```
         #[napi]
-        pub fn next(&mut self, env: Env, input: f64) -> napi::Result<JsUnknown> {
+        pub fn next(&mut self, env: Env, input: f64) -> napi::Result<Unknown> {
             let output = self
                 .inner
                 .next(input)
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?;
             match output {
-                OutputType::Array(arr) => {
-                    let mut js_arr = env.create_array_with_length(arr.len())?;
-                    for (i, val) in arr.iter().enumerate() {
-                        js_arr.set_element(i as u32, env.create_double(*val)?)?;
-                    }
-                    Ok(js_arr.into_unknown())
-                }
-                OutputType::Single(val) => Ok(env.create_double(val)?.into_unknown()),
+                OutputType::Array(arr) => env.to_js_value(&arr),
+                OutputType::Single(val) => env.to_js_value(&val),
+                OutputType::Open => env.to_js_value(&"open"),
+                OutputType::Close => env.to_js_value(&"close"),
+                OutputType::High => env.to_js_value(&"high"),
+                OutputType::Low => env.to_js_value(&"low"),
+                OutputType::Volume => env.to_js_value(&"volume"),
+                OutputType::Custom(vals) => env.to_js_value(&vals),
+                OutputType::Static(static_val) => env.to_js_value(&static_val),
+                OutputType::Statics(static_vals) => env.to_js_value(&static_vals),
             }
         }
 
@@ -444,8 +665,9 @@ pub mod js {
         /// const values = rsi.nextBatched([100, 101, 102]);
         /// ```
         #[napi]
-        pub fn next_batched(&mut self, env: Env, input: Vec<f64>) -> napi::Result<Vec<JsUnknown>> {
-            input.iter().map(|e| self.next(env, *e)).collect()
+        pub fn next_batched(&mut self, env: Env, input: Vec<f64>) -> napi::Result<Vec<Unknown>> {
+            let raw = self.inner.next_batched(input.into_iter());
+            raw.into_iter().map(|r| env.to_js_value(&r)).collect()
         }
 
         /// Calculates the next value using a candle as input
@@ -463,20 +685,22 @@ pub mod js {
         /// const value = tr.nextCandle(candle);
         /// ```
         #[napi]
-        pub fn next_candle(&mut self, env: Env, candle: &CandleJs) -> napi::Result<JsUnknown> {
+        pub fn next_candle(&mut self, env: Env, candle: &Candle) -> napi::Result<Unknown> {
             let output = self
                 .inner
                 .next(candle)
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?;
             match output {
-                OutputType::Array(arr) => {
-                    let mut js_arr = env.create_array_with_length(arr.len())?;
-                    for (i, val) in arr.iter().enumerate() {
-                        js_arr.set_element(i as u32, env.create_double(*val)?)?;
-                    }
-                    Ok(js_arr.into_unknown())
-                }
-                OutputType::Single(val) => Ok(env.create_double(val)?.into_unknown()),
+                OutputType::Array(arr) => env.to_js_value(&arr),
+                OutputType::Single(val) => env.to_js_value(&val),
+                OutputType::Open => env.to_js_value(&"open"),
+                OutputType::Close => env.to_js_value(&"close"),
+                OutputType::High => env.to_js_value(&"high"),
+                OutputType::Low => env.to_js_value(&"low"),
+                OutputType::Volume => env.to_js_value(&"volume"),
+                OutputType::Custom(vals) => env.to_js_value(&vals),
+                OutputType::Static(static_val) => env.to_js_value(&static_val),
+                OutputType::Statics(static_vals) => env.to_js_value(&static_vals),
             }
         }
 
@@ -501,12 +725,10 @@ pub mod js {
         pub fn next_candles(
             &mut self,
             env: Env,
-            candles: Vec<&CandleJs>,
-        ) -> napi::Result<Vec<JsUnknown>> {
-            candles
-                .into_iter()
-                .map(|c| self.next_candle(env, c))
-                .collect()
+            candles: Vec<&Candle>,
+        ) -> napi::Result<Vec<Unknown>> {
+            let results = self.inner.next_batched(candles.into_iter())?;
+            results.into_iter().map(|e| env.to_js_value(&e)).collect()
         }
     }
 }
@@ -516,8 +738,8 @@ pub mod py {
     use crate::traits::Candle as CandleTrait;
     use crate::{traits::Next, types::OutputType};
     use pyo3::{
-        exceptions::PyValueError, pyclass, pymethods, Bound, IntoPyObject, IntoPyObjectExt, PyAny,
-        PyResult, Python,
+        Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, exceptions::PyValueError,
+        pyclass, pymethods,
     };
     use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
     use serde::{Deserialize, Serialize};
@@ -734,7 +956,7 @@ pub mod py {
 #[cfg(test)]
 mod indicators_test {
 
-    use super::*;
+    use super::{*, indicator::Indicator};
 
     #[test]
     fn test_serialize() {

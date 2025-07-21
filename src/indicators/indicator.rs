@@ -1,7 +1,7 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::{
-    errors::{LangError, LangResult},
     Lang, Pair, Rule,
+    errors::{LangError, LangResult},
 };
 
 use core::fmt;
@@ -37,7 +37,6 @@ register_trait! {
         }
     }
 }
-
 
 register_trait! {
     /// Resets an indicator to the initial state.
@@ -601,6 +600,8 @@ impl<T: Candle> Next<&T> for Indicator {
 #[cfg(feature = "chipa_lang")]
 impl Lang for Indicator {
     fn from_ct(input: &str) -> LangResult<Self> {
+        use chipa_lang_utils::errors::LangErrorKind;
+
         match input {
             _ if input.starts_with("None") => Ok(Indicator::none()),
             _ if input.starts_with("Alligator") => {
@@ -638,16 +639,19 @@ impl Lang for Indicator {
             _ if input.starts_with("WilliamsR") => {
                 WilliamsR::from_ct(input).map(Indicator::WilliamsR)
             }
-            _ => Err(LangError::ParseError(format!(
-                "Unknown indicator type: {input}"
-            ))),
+            _ => Err(LangErrorKind::ParseError(format!("Unknown indicator type: {input}")).into()),
         }
     }
 
     fn from_pair(pair: Pair<Rule>) -> LangResult<Self> {
+        use chipa_lang_utils::errors::LangErrorKind;
+
         match pair.as_rule() {
             Rule::indicator => {
-                let inner = pair.into_inner().next().ok_or(LangError::ParseError("Empty indicator".to_string()))?;
+                let inner = pair
+                    .into_inner()
+                    .next()
+                    .ok_or(LangErrorKind::ParseError("Empty indicator".to_string()))?;
                 Indicator::from_pair(inner)
             }
             Rule::None => Ok(Indicator::none()),
@@ -668,10 +672,13 @@ impl Lang for Indicator {
             Rule::SuperTrend => SuperTrend::from_pair(pair).map(Indicator::SuperTrend),
             Rule::Tr => TrueRange::from_pair(pair).map(Indicator::Tr),
             Rule::WilliamsR => WilliamsR::from_pair(pair).map(Indicator::WilliamsR),
-            _ => Err(LangError::ParseError(format!(
-                "Unexpected rule for Indicator: {:?}",
-                pair.as_rule()
-            ))),
+            _ => Err(LangError::from_kind_pair(
+                LangErrorKind::ParseError(format!(
+                    "Unexpected rule for Indicator: {:?}",
+                    pair.as_rule()
+                )),
+                &pair,
+            )),
         }
     }
 
@@ -1063,6 +1070,48 @@ impl Indicator {
     /// ```
     pub fn smma(period: usize) -> TaResult<Self> {
         Ok(Self::Smma(SmoothedMovingAverage::new(period)?))
+    }
+
+    /// Creates a new Alligator indicator.
+    ///
+    /// The Alligator is a trend-following indicator with three smoothed moving averages:
+    /// - Jaw: SMMA(13, 8) - Blue line
+    /// - Teeth: SMMA(8, 5) - Red line  
+    /// - Lips: SMMA(5, 3) - Green line
+    ///
+    /// # Parameters
+    /// * `jaw_period` - Period for the jaw line (commonly 13)
+    /// * `jaw_shift` - Forward shift for the jaw line (commonly 8)
+    /// * `teeth_period` - Period for the teeth line (commonly 8)
+    /// * `teeth_shift` - Forward shift for the teeth line (commonly 5)
+    /// * `lips_period` - Period for the lips line (commonly 5)
+    /// * `lips_shift` - Forward shift for the lips line (commonly 3)
+    ///
+    /// # Returns
+    /// * `Ok(Indicator)` - Successfully created Alligator indicator
+    /// * `Err(TaError)` - If any period is less than 2 or any shift is less than 1
+    ///
+    /// # Example
+    /// ```rust
+    /// // Standard Alligator
+    /// let alligator = Indicator::alligator(13, 8, 8, 5, 5, 3)?;
+    /// ```
+    pub fn alligator(
+        jaw_period: usize,
+        jaw_shift: usize,
+        teeth_period: usize,
+        teeth_shift: usize,
+        lips_period: usize,
+        lips_shift: usize,
+    ) -> TaResult<Self> {
+        Ok(Self::Alligator(Alligator::new(
+            jaw_period,
+            jaw_shift,
+            teeth_period,
+            teeth_shift,
+            lips_period,
+            lips_shift,
+        )?))
     }
 }
 
