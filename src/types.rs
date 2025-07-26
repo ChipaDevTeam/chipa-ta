@@ -140,8 +140,9 @@ impl OutputType {
             OutputType::Custom(vec) => {
                 let mut out = Vec::with_capacity(vec.len());
                 for ot in vec {
-                    match ot.resolve(data)? {
-                        OutputType::Single(v) => out.push(v),
+                    match ot.resolve(data)? { // FIXME: Fix it for when output types support complex shapes
+                        OutputType::Single(v) => out.push(OutputType::Single(v)),
+                        OutputType::Static(s) => out.push(OutputType::Static(s)),
                         _ => {
                             return Err(TaError::IncorrectOutputType {
                                 expected: "Single".into(),
@@ -150,13 +151,15 @@ impl OutputType {
                         }
                     }
                 }
-                Ok(OutputType::Array(out))
+                Ok(OutputType::Custom(out))
             }
             OutputType::Static(_) => Ok(self.clone()),
             OutputType::Statics(_) => Ok(self.clone()),
         }
     }
 }
+
+
 
 impl OutputShape {
     pub fn validate(&self) -> TaResult<Self> {
