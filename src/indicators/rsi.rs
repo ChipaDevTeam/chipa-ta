@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -101,7 +102,7 @@ impl Period for RelativeStrengthIndex {
 impl Next<f64> for RelativeStrengthIndex {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let mut up = 0.0;
         let mut down = 0.0;
 
@@ -126,7 +127,7 @@ impl Next<f64> for RelativeStrengthIndex {
 impl<T: Candle> Next<&T> for RelativeStrengthIndex {
     type Output = f64;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

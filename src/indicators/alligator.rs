@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 use serde::{Deserialize, Serialize};
@@ -136,14 +137,14 @@ impl Alligator {
         lips_shift: usize,
     ) -> TaResult<Self> {
         if jaw_period < 2 || teeth_period < 2 || lips_period < 2 {
-            return Err(TaError::InvalidParameter(
+            return Err(TaUtilsError::InvalidParameter(
                 "Periods must be at least 2".to_string(),
-            ));
+            ).into());
         }
         if jaw_shift < 1 || teeth_shift < 1 || lips_shift < 1 {
-            return Err(TaError::InvalidParameter(
+            return Err(TaUtilsError::InvalidParameter(
                 "Shifts must be at least 1".to_string(),
-            ));
+            ).into());
         }
         Ok(Self {
             jaw: SmoothedMovingAverage::new(jaw_period)?,
@@ -179,7 +180,7 @@ impl Period for Alligator {
 impl Next<f64> for Alligator {
     type Output = (f64, f64, f64);
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let jaw_val = self.jaw.next(input)?;
         let teeth_val = self.teeth.next(input)?;
         let lips_val = self.lips.next(input)?;
@@ -204,7 +205,7 @@ impl Next<f64> for Alligator {
 impl<T: Candle> Next<&T> for Alligator {
     type Output = (f64, f64, f64);
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         // Use median price as input: (high + low) / 2
         let price = (input.high() + input.low()) / 2.0;
         self.next(price)

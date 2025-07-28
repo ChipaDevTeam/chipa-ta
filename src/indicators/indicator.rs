@@ -1,8 +1,10 @@
+use chipa_lang_utils::traits::Indexable;
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::{
     Lang, Pair, Rule,
     errors::{LangError, LangResult},
 };
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -11,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::indicators::alligator::Alligator;
 use crate::indicators::ao::AwesomeOscillator;
+use crate::indicators::custom::CustomIndicator;
 use crate::indicators::kc::KeltnerChannel;
 use crate::indicators::obv::OnBalanceVolume;
 use crate::indicators::sd::StandardDeviation;
@@ -29,7 +32,7 @@ use crate::{
 };
 
 register_trait! {
-    pub trait IndicatorTrait: Clone + fmt::Debug + Reset + Default + PartialEq + Period + fmt::Display {
+    pub trait IndicatorTrait: fmt::Debug + Reset + Period + fmt::Display {
         fn output_shape(&self) -> OutputShape;
 
         fn name(&self) -> String {
@@ -101,7 +104,7 @@ register_trait! {
 // #[auto_implement(path = "src/traits.rs")]
 #[auto_implement(trait = Period)]
 #[auto_implement(trait = Reset)]
-#[auto_implement(trait = IndicatorTrait)]
+// #[auto_implement(trait = IndicatorTrait)]  // Manually implemented due to Custom variant
 // #[auto_implement(method(from_ct_string = "from_ct_string_custom"))]
 #[serde(tag = "type")]
 pub enum Indicator {
@@ -352,6 +355,18 @@ pub enum Indicator {
     ///
     /// **Output**: Single value representing Williams %R
     WilliamsR(WilliamsR),
+
+    /// **Custom Indicator** - Wrapper for user-defined indicators.
+    ///
+    /// Allows any indicator implementing the required traits to be used within the enum.
+    /// Uses trait objects for dynamic dispatch while maintaining enum compatibility.
+    ///
+    /// **Use Cases**: Custom trading indicators, experimental indicators, specialized calculations
+    ///
+    /// **Period**: Depends on wrapped indicator
+    ///
+    /// **Output**: Depends on wrapped indicator
+    Custom(CustomIndicator),
 }
 
 /// A placeholder indicator that passes through input values unchanged.
@@ -424,6 +439,7 @@ impl fmt::Display for Indicator {
                 Self::SuperTrend(i) => i.name(),
                 Self::Tr(i) => i.name(),
                 Self::WilliamsR(i) => i.name(),
+                Self::Custom(i) => i.name().to_string(),
             }
         )
     }
@@ -434,10 +450,60 @@ impl Default for Indicator {
         Self::None(NoneIndicator {})
     }
 }
+
+impl IndicatorTrait for Indicator {
+    fn output_shape(&self) -> OutputShape {
+        match self {
+            Self::None(i) => i.output_shape(),
+            Self::Alligator(i) => i.output_shape(),
+            Self::Ao(i) => i.output_shape(),
+            Self::Atr(i) => i.output_shape(),
+            Self::Bb(i) => i.output_shape(),
+            Self::Ema(i) => i.output_shape(),
+            Self::Kc(i) => i.output_shape(),
+            Self::Macd(i) => i.output_shape(),
+            Self::Mae(i) => i.output_shape(),
+            Self::Obv(i) => i.output_shape(),
+            Self::Rsi(i) => i.output_shape(),
+            Self::Sd(i) => i.output_shape(),
+            Self::Sma(i) => i.output_shape(),
+            Self::Smma(i) => i.output_shape(),
+            Self::Stoch(i) => i.output_shape(),
+            Self::SuperTrend(i) => i.output_shape(),
+            Self::Tr(i) => i.output_shape(),
+            Self::WilliamsR(i) => i.output_shape(),
+            Self::Custom(i) => i.output_shape(),
+        }
+    }
+
+    fn name(&self) -> String {
+        match self {
+            Self::None(i) => i.name(),
+            Self::Alligator(i) => i.name(),
+            Self::Ao(i) => i.name(),
+            Self::Atr(i) => i.name(),
+            Self::Bb(i) => i.name(),
+            Self::Ema(i) => i.name(),
+            Self::Kc(i) => i.name(),
+            Self::Macd(i) => i.name(),
+            Self::Mae(i) => i.name(),
+            Self::Obv(i) => i.name(),
+            Self::Rsi(i) => i.name(),
+            Self::Sd(i) => i.name(),
+            Self::Sma(i) => i.name(),
+            Self::Smma(i) => i.name(),
+            Self::Stoch(i) => i.name(),
+            Self::SuperTrend(i) => i.name(),
+            Self::Tr(i) => i.name(),
+            Self::WilliamsR(i) => i.name(),
+            Self::Custom(i) => i.name(),
+        }
+    }
+}
 impl Next<f64> for Indicator {
     type Output = OutputType;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         match self {
             Self::None(indicator) => indicator.next(input).map(OutputType::from),
             Self::Alligator(indicator) => indicator
@@ -461,7 +527,7 @@ impl Next<f64> for Indicator {
                 .map(|output| OutputType::Array(vec![output.average, output.upper, output.lower])),
             Self::Stoch(_) => {
                 // StochasticOscillator only implements Next<&T>, not Next<f64>
-                Err(crate::error::TaError::Unexpected(
+                Err(TaUtilsError::Unexpected(
                     "StochasticOscillator requires Candle input".to_string(),
                 ))
             }
@@ -469,7 +535,7 @@ impl Next<f64> for Indicator {
             Self::Mae(indicator) => indicator.next(input).map(OutputType::from),
             Self::Obv(_) => {
                 // OnBalanceVolume only implements Next<&T>, not Next<f64>
-                Err(crate::error::TaError::Unexpected(
+                Err(TaUtilsError::Unexpected(
                     "OnBalanceVolume requires Candle input".to_string(),
                 ))
             }
@@ -478,6 +544,7 @@ impl Next<f64> for Indicator {
                 .next(input)
                 .map(|o| OutputType::Array(Vec::from(o))),
             Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Custom(_) => Err(TaUtilsError::Unallowed("Custom indicators do not support Next<f64>".to_string())),
         }
     }
 }
@@ -510,7 +577,7 @@ impl Next<f64> for Indicator {
 impl<T: Candle> Next<&T> for Indicator {
     type Output = OutputType;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         match self {
             Self::None(indicator) => indicator.next(input).map(OutputType::from),
             Self::Alligator(indicator) => indicator
@@ -543,6 +610,7 @@ impl<T: Candle> Next<&T> for Indicator {
                 .next(input)
                 .map(|o| OutputType::Array(Vec::from(o))),
             Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Custom(indicator) => indicator.next(input).map(OutputType::from),
         }
     }
 }
@@ -702,9 +770,13 @@ impl Lang for Indicator {
             Self::SuperTrend(indicator) => indicator.to_ct(),
             Self::Tr(indicator) => indicator.to_ct(),
             Self::WilliamsR(indicator) => indicator.to_ct(),
+            Self::Custom(indicator) => indicator.to_ct(),
         }
     }
 }
+
+#[cfg(feature = "chipa_lang")]
+impl Indexable for Indicator {}
 
 impl Reset for NoneIndicator {
     fn reset(&mut self) {}
@@ -713,16 +785,16 @@ impl Reset for NoneIndicator {
 impl Next<f64> for NoneIndicator {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         Ok(input)
     }
 }
 
 impl<T: Candle> Next<&T> for NoneIndicator {
-    type Output = f64;
+    type Output = OutputType;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
-        self.next(input.close())
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
+        Ok(OutputType::Single(input.price()))
     }
 }
 

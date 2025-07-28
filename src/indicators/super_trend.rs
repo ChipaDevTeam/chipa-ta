@@ -1,6 +1,7 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
 
+use chipa_ta_utils::TaUtilsResult;
 use serde::{Deserialize, Serialize};
 
 use crate::error::TaResult;
@@ -107,7 +108,7 @@ impl Reset for SuperTrend {
 impl Next<f64> for SuperTrend {
     type Output = SuperTrendOutput;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let atr = self.atr.next(input)?;
         let low = input + self.multiplier * atr;
         let high = input - self.multiplier * atr;
@@ -118,7 +119,7 @@ impl Next<f64> for SuperTrend {
 impl<T: Candle> Next<&T> for SuperTrend {
     type Output = SuperTrendOutput;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         let atr = self.atr.next(input)?;
         let val = (input.high() + input.low()) / 2.0;
         let low = val + self.multiplier * atr;

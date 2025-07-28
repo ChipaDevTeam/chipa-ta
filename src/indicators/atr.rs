@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -96,7 +97,7 @@ impl Period for AverageTrueRange {
 impl Next<f64> for AverageTrueRange {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         self.ema.next(self.true_range.next(input)?)
     }
 }
@@ -104,7 +105,7 @@ impl Next<f64> for AverageTrueRange {
 impl<C: Candle> Next<&C> for AverageTrueRange {
     type Output = f64;
 
-    fn next(&mut self, input: &C) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &C) -> TaUtilsResult<Self::Output> {
         self.ema.next(self.true_range.next(input)?)
     }
 }

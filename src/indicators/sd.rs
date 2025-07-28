@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use std::fmt;
 
@@ -43,9 +44,9 @@ impl<'de> Deserialize<'de> for StandardDeviation {
 impl StandardDeviation {
     pub fn new(period: usize) -> TaResult<Self> {
         match period {
-            0 => Err(TaError::InvalidParameter(
-                "Period must be greater than 0".to_string(),
-            )),
+            0 => Err(
+                TaUtilsError::InvalidParameter("Period must be greater than 0".to_string()).into(),
+            ),
             _ => Ok(Self {
                 period,
                 index: 0,
@@ -77,7 +78,7 @@ impl Period for StandardDeviation {
 impl Next<f64> for StandardDeviation {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let old_val = self.deque[self.index];
         self.deque[self.index] = input;
 
@@ -111,7 +112,7 @@ impl Next<f64> for StandardDeviation {
 impl<T: Candle> Next<&T> for StandardDeviation {
     type Output = f64;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

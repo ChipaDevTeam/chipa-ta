@@ -3,6 +3,7 @@
 
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -41,9 +42,9 @@ impl fmt::Display for MeanAbsoluteError {
 impl MeanAbsoluteError {
     pub fn new(period: usize) -> TaResult<Self> {
         if period == 0 {
-            return Err(TaError::InvalidParameter(
+            return Err(TaUtilsError::InvalidParameter(
                 "Period must be greater than 0".to_string(),
-            ));
+            ).into());
         }
         Ok(Self {
             period,
@@ -61,7 +62,7 @@ impl IndicatorTrait for MeanAbsoluteError {
 
 impl Next<f64> for MeanAbsoluteError {
     type Output = f64;
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         self.values.push(input);
         if self.values.len() > self.period {
             self.values.remove(0);
@@ -80,7 +81,7 @@ impl Next<f64> for MeanAbsoluteError {
 impl<T: Candle> Next<&T> for MeanAbsoluteError {
     type Output = f64;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

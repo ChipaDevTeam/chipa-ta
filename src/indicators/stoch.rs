@@ -3,6 +3,7 @@
 
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -65,9 +66,10 @@ impl Default for StochasticOscillator {
 impl StochasticOscillator {
     pub fn new(period: usize, smoothing_period: usize) -> TaResult<Self> {
         if period == 0 {
-            return Err(crate::error::TaError::InvalidParameter(
+            return Err(TaUtilsError::InvalidParameter(
                 "Period must be greater than 0".to_string(),
-            ));
+            )
+            .into());
         }
         Ok(Self {
             period,
@@ -94,7 +96,7 @@ impl<T: Candle> Next<&T> for StochasticOscillator {
 
     /// Calculates the Stochastic Oscillator value for the given candle.
     /// Returns data in a range from 0.0 to 100.0
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.values.push((input.high(), input.low(), input.close()));
         if self.values.len() > self.period {
             self.values.remove(0);

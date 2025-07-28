@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -124,7 +125,7 @@ impl Next<f64> for AwesomeOscillator {
 
     /// Calculates the Awesome Oscillator value based on the input price.
     /// Not recommended to use this method with floats, as it does not consider the median price.
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let short_value = self.short_sma.next(input)?;
         let long_value = self.long_sma.next(input)?;
         Ok(short_value - long_value)
@@ -134,7 +135,7 @@ impl Next<f64> for AwesomeOscillator {
 impl<C: Candle> Next<&C> for AwesomeOscillator {
     type Output = f64;
 
-    fn next(&mut self, input: &C) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &C) -> TaUtilsResult<Self::Output> {
         let mp = (input.high() + input.low()) / 2.0; // Median Price
         let short_value = self.short_sma.next(mp)?;
         let long_value = self.long_sma.next(mp)?;

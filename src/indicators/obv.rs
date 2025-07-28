@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -64,7 +65,7 @@ impl Reset for OnBalanceVolume {
 impl<C: Candle> Next<&C> for OnBalanceVolume {
     type Output = f64;
 
-    fn next(&mut self, candle: &C) -> TaResult<Self::Output> {
+    fn next(&mut self, candle: &C) -> TaUtilsResult<Self::Output> {
         match self.prev_close {
             Some(prev) => {
                 if candle.close() > prev {

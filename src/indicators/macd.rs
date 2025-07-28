@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -127,7 +128,7 @@ impl From<MovingAverageConvergenceDivergenceOutput> for (f64, f64, f64) {
 impl Next<f64> for MovingAverageConvergenceDivergence {
     type Output = MovingAverageConvergenceDivergenceOutput;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let fast_val = self.fast_ema.next(input)?;
         let slow_val = self.slow_ema.next(input)?;
 
@@ -146,7 +147,7 @@ impl Next<f64> for MovingAverageConvergenceDivergence {
 impl<T: Candle> Next<&T> for MovingAverageConvergenceDivergence {
     type Output = MovingAverageConvergenceDivergenceOutput;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

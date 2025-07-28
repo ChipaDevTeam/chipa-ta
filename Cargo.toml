@@ -19,9 +19,9 @@ strategy = ["dep:async-trait","dep:chrono"]
 chipa_lang = ["dep:chipa-lang-utils"]
 
 [dependencies]
-futures-util = "0.3.31"
 thiserror = "2.0.12"
 tracing = "0.1.41"
+chipa-ta-utils ={ path = "../chipa-ta-utils", version = "0.1.0" }
 
 [dependencies.chipa-lang-utils]
 path = "../chipa-lang-utils"

@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::TaUtilsResult;
 
 use core::fmt;
 
@@ -114,7 +115,7 @@ impl Period for WilliamsR {
 impl Next<f64> for WilliamsR {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let _ = self.highs.push(input);
         let _ = self.lows.push(input);
 
@@ -142,7 +143,7 @@ impl Next<f64> for WilliamsR {
 impl<C: Candle> Next<&C> for WilliamsR {
     type Output = f64;
 
-    fn next(&mut self, candle: &C) -> TaResult<Self::Output> {
+    fn next(&mut self, candle: &C) -> TaUtilsResult<Self::Output> {
         let _ = self.highs.push(candle.high());
         let _ = self.lows.push(candle.low());
 

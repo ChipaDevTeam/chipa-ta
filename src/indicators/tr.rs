@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::TaUtilsResult;
 
 use core::fmt;
 
@@ -41,7 +42,7 @@ impl fmt::Display for TrueRange {
 impl Next<f64> for TrueRange {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let distance = match self.prev_close {
             Some(prev) => (input - prev).abs(),
             None => 0.0,
@@ -54,7 +55,7 @@ impl Next<f64> for TrueRange {
 impl<T: Candle> Next<&T> for TrueRange {
     type Output = f64;
 
-    fn next(&mut self, bar: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, bar: &T) -> TaUtilsResult<Self::Output> {
         let max_dist = match self.prev_close {
             Some(prev_close) => {
                 let dist1 = bar.high() - bar.low();

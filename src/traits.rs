@@ -3,53 +3,27 @@ use core::{f64, fmt::Debug};
 
 pub use crate::indicators::indicator::{IndicatorTrait, Period, Reset};
 
-pub trait Candle: Clone + Debug + Sized {
-    fn open(&self) -> f64 {
-        self.price()
-    }
+use chipa_ta_utils::TaUtilsResult;
+pub use chipa_ta_utils::{Candle, Next};
 
-    fn close(&self) -> f64 {
-        self.price()
-    }
-
-    fn high(&self) -> f64 {
-        self.price()
-    }
-
-    fn low(&self) -> f64 {
-        self.price()
-    }
-
-    fn price(&self) -> f64;
-
-    fn volume(&self) -> f64 {
-        f64::NAN
-    }
-
-    fn to_bar(&self) -> Bar {
-        Bar::new()
-            .set_open(self.open())
-            .set_high(self.high())
-            .set_low(self.low())
-            .set_close(self.close())
-            .set_price(self.price())
-            .set_volume(self.volume())
-    }
-}
-
-
-pub trait Next<T> {
+pub trait NextBatched<T> {
     type Output;
-
-    fn next(&mut self, input: T) -> TaResult<Self::Output>;
 
     fn next_batched<A>(&mut self, input: A) -> TaResult<Vec<Self::Output>>
     where
-        A: Iterator<Item = T>,
-    {
-        input.map(|e| self.next(e)).collect()
-    }
+        A: Iterator<Item = T>;
 }
 
+impl<'a, T: Next<&'a dyn Candle>> NextBatched<&'a dyn Candle> for T {
+    type Output = T::Output;
 
-pub trait Output {}
+    fn next_batched<A>(&mut self, input: A) -> TaResult<Vec<Self::Output>>
+    where
+        A: Iterator<Item = &'a dyn Candle>,
+    {
+        input
+            .map(|e| self.next(e))
+            .collect::<TaUtilsResult<Vec<Self::Output>>>()
+            .map_err(|e| e.into())
+    }
+}

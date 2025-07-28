@@ -1,11 +1,12 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::{TaError, TaResult},
+    error::TaResult,
     traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
     types::Queue,
@@ -58,7 +59,7 @@ impl<'de> Deserialize<'de> for SmoothedMovingAverage {
 impl SmoothedMovingAverage {
     pub fn new(period: usize) -> TaResult<Self> {
         if period < 2 {
-            return Err(TaError::InvalidParameter(period.to_string()));
+            return Err(TaUtilsError::InvalidParameter(period.to_string()).into());
         }
         // Initialize the queue with an element so once it returns the first value, it has a valid state (as the returned value will be the dummy one we pass at the start)
         let mut queue = Queue::new(period)?;
@@ -87,7 +88,7 @@ impl Period for SmoothedMovingAverage {
 impl Next<f64> for SmoothedMovingAverage {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         // Fill the queue until we have enough values for the first average
         if self.smma.is_none() {
             match self.queue.push(input) {
@@ -116,7 +117,7 @@ impl Next<f64> for SmoothedMovingAverage {
 impl<T: Candle> Next<&T> for SmoothedMovingAverage {
     type Output = f64;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

@@ -1,14 +1,13 @@
+use chipa_ta_utils::OutputShape;
 use thiserror::Error;
-
-use crate::types::OutputError;
 
 #[derive(Error, Debug)]
 pub enum TaError {
     /// When parsing an indicator from a string (representing the indicator in the CT format) fails.
     #[error("Invalid Chipa Trading Lang format: {0}")]
     InvalidChipaLangFormat(String),
-    #[error("InvalidParameter '{0}' found")]
-    InvalidParameter(String),
+    #[error("Utils error: {0}")]
+    Utils(#[from] chipa_ta_utils::TaUtilsError),
     #[error("Empty iterator recieved on function '{0}'")]
     EmptyIterator(String),
     #[error("Incorrect output type, expected {expected}, got {actual}")]
@@ -26,12 +25,26 @@ pub enum TaError {
 
     #[error("Not initialized, tried to call a method that requires initialization, error: {0}")]
     NotInitialized(String),
+
+    /// Unallowed operation, such as trying to modify an immutable reference.
+    #[error("Unallowed operation: {0}")]
+    Unallowed(String),
+}
+
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum OutputError {
+    #[error("Type mismatch")]
+    TypeMismatch,
+    #[error("Length mismatch between two arrays, array1: {0}, array2: {1}")]
+    LengthMismatch(usize, usize),
+    #[error("Invalid output shape {0}")]
+    InvalidOutputShape(OutputShape),
 }
 
 impl PartialEq for TaError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (TaError::InvalidParameter(a), TaError::InvalidParameter(b)) => a == b,
+            (TaError::Utils(a), TaError::Utils(b)) => a == b,
             (TaError::EmptyIterator(a), TaError::EmptyIterator(b)) => a == b,
             (
                 TaError::IncorrectOutputType {

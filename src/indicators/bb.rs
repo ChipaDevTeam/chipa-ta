@@ -1,5 +1,6 @@
 // Bollinger Bands indicator implementation for chipa-ta
 // Based on ta-rs and TA-Lib
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
@@ -85,7 +86,7 @@ impl Period for BollingerBands {
 impl Next<f64> for BollingerBands {
     type Output = BollingerBandsOutput;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let sd = self.sd.next(input)?;
         let mean = self.sd.mean();
 
@@ -100,7 +101,7 @@ impl Next<f64> for BollingerBands {
 impl<T: Candle> Next<&T> for BollingerBands {
     type Output = BollingerBandsOutput;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

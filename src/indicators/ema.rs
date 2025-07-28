@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -66,7 +67,7 @@ impl IndicatorTrait for ExponentialMovingAverage {
 impl ExponentialMovingAverage {
     pub fn new(period: usize) -> TaResult<Self> {
         match period {
-            0 => Err(TaError::InvalidParameter("0".to_string())),
+            0 => Err(TaUtilsError::InvalidParameter("0".to_string()).into()),
             _ => Ok(Self {
                 period,
                 k: 2.0 / (period + 1) as f64,
@@ -86,7 +87,7 @@ impl Period for ExponentialMovingAverage {
 impl Next<f64> for ExponentialMovingAverage {
     type Output = f64;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         if self.is_new {
             self.is_new = false;
             self.current = input;
@@ -100,7 +101,7 @@ impl Next<f64> for ExponentialMovingAverage {
 impl<T: Candle> Next<&T> for ExponentialMovingAverage {
     type Output = f64;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         self.next(input.close())
     }
 }

@@ -2,8 +2,11 @@ pub mod alligator;
 pub mod ao;
 pub mod atr;
 pub mod bb;
+pub mod custom;
 pub mod ema;
 pub mod indicator;
+#[cfg(test)]
+pub mod integration_test;
 pub mod kc;
 pub mod macd;
 pub mod mae;
@@ -16,7 +19,6 @@ pub mod stoch;
 pub mod super_trend;
 pub mod tr;
 pub mod williams_r;
-
 // #[cfg(feature="js")]
 pub use atr::AverageTrueRange;
 pub use bb::BollingerBands;
@@ -30,14 +32,16 @@ pub use stoch::StochasticOscillator;
 pub use super_trend::SuperTrend;
 pub use tr::TrueRange;
 
+pub use custom::CustomIndicator;
 pub use serde::{Deserialize, Serialize};
 #[cfg(feature = "js")]
 pub mod js {
     use crate::{
-        indicators::indicator::NoneIndicator, traits::Candle as CandleRs, traits::Next, types::OutputType,
+        indicators::indicator::NoneIndicator, traits::Candle as CandleRs, traits::Next,
+        types::OutputType,
     };
 
-    use super::{*, indicator::Indicator as IndicatorRs};
+    use super::{indicator::Indicator as IndicatorRs, *};
     use napi::bindgen_prelude::*;
     use napi_derive::napi;
     /// Represents a financial candlestick with OHLCV (Open, High, Low, Close, Volume) data
@@ -956,7 +960,7 @@ pub mod py {
 #[cfg(test)]
 mod indicators_test {
 
-    use super::{*, indicator::Indicator};
+    use super::{indicator::Indicator, *};
 
     #[test]
     fn test_serialize() {

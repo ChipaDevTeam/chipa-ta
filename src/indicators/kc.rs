@@ -1,5 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
+use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
@@ -105,9 +106,9 @@ impl Default for KeltnerChannel {
 impl KeltnerChannel {
     pub fn new(period: usize, multiplier: f64) -> TaResult<Self> {
         if period == 0 {
-            return Err(TaError::InvalidParameter(
+            return Err(TaUtilsError::InvalidParameter(
                 "Period must be greater than 0".to_string(),
-            ));
+            ).into());
         }
         Ok(Self {
             multiplier,
@@ -149,7 +150,7 @@ impl Reset for KeltnerChannel {
 impl Next<f64> for KeltnerChannel {
     type Output = KeltnerChannelOutput;
 
-    fn next(&mut self, input: f64) -> TaResult<Self::Output> {
+    fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
         let atr_value = self.atr.next(input)?;
         let ema_value = self.ema.next(input)?;
 
@@ -167,7 +168,7 @@ impl Next<f64> for KeltnerChannel {
 impl<T: Candle> Next<&T> for KeltnerChannel {
     type Output = KeltnerChannelOutput;
 
-    fn next(&mut self, input: &T) -> TaResult<Self::Output> {
+    fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         let tp = (input.high() + input.low() + input.close()) / 3.0;
         self.next(tp)
     }

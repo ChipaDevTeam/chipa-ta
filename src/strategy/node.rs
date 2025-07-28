@@ -262,8 +262,6 @@ impl StrategyNode {
                 // Else branch must exist and be valid
                 if let Some(else_node) = else_branch {
                     else_node.validate()?;
-                } else {
-                    return Err(TaError::from(StrategyError::MissingElseBranch));
                 }
                 Ok(())
             }
@@ -335,7 +333,8 @@ mod tests {
 
     use super::*;
     use crate::helper_types::Bar;
-    use crate::types::{OutputType, Statics};
+    use crate::types::OutputType;
+    use chipa_ta_utils::output::Statics;
     use serde_json;
 
     #[test]
