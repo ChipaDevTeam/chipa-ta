@@ -38,6 +38,8 @@ struct AutoImplOpts {
     methods: Vec<MethodMapping>,
     #[darling()]
     path: Option<String>,
+    #[darling()]
+    context: Option<String>
 }
 
 #[derive(Debug, FromVariant)]
@@ -204,6 +206,29 @@ impl AutoImplOpts {
         })
     }
 
+    fn load_from_string(&self, string: &str) -> syn::Result<HashMap<String, Vec<String>>> {
+        let mut methods: HashMap<String, Vec<String>> = HashMap::new();
+        let file = syn::parse_file(string)?;
+        for item in file.items {
+            if let syn::Item::Trait(trait_item) = item {
+                let trait_name = trait_item.ident.to_string();
+                let trait_methods: Vec<String> = trait_item
+                    .items
+                    .iter()
+                    .filter_map(|item| {
+                        if let syn::TraitItem::Fn(method) = item {
+                            Some(method.to_token_stream().to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                methods.insert(trait_name, trait_methods);
+            }
+        }
+        Ok(methods)
+    }
+
     fn load_traits_from_file(&self) -> syn::Result<HashMap<String, Vec<String>>> {
         if let Some(path) = &self.path {
             let content = read_to_string(path).map_err(|e| {
@@ -212,26 +237,7 @@ impl AutoImplOpts {
                     format!("Failed to read file '{path}': {e}"),
                 )
             })?;
-            let mut methods: HashMap<String, Vec<String>> = HashMap::new();
-            let file = syn::parse_file(&content)?;
-            for item in file.items {
-                if let syn::Item::Trait(trait_item) = item {
-                    let trait_name = trait_item.ident.to_string();
-                    let trait_methods: Vec<String> = trait_item
-                        .items
-                        .iter()
-                        .filter_map(|item| {
-                            if let syn::TraitItem::Fn(method) = item {
-                                Some(method.to_token_stream().to_string())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect();
-                    methods.insert(trait_name, trait_methods);
-                }
-            }
-            Ok(methods)
+            self.load_from_string(&content)
         } else {
             Err(syn::Error::new(
                 Span::call_site(),
@@ -242,10 +248,13 @@ impl AutoImplOpts {
 
     fn create_impls(&self) -> syn::Result<TokenStream2> {
         let maps = self.to_hashmap();
-        let traits_and_methods = match &self.path {
-            Some(_) => self.load_traits_from_file()?,
-            None => TRAIT_METHODS.read().unwrap().clone(),
-        };
+        let mut traits_and_methods: HashMap<String, Vec<String>> = TRAIT_METHODS.read().unwrap().clone();
+        if let Some(_) = &self.path {
+            traits_and_methods.extend(self.load_traits_from_file()?);
+        }
+        if let Some(context) = &self.context {
+            traits_and_methods.extend(self.load_from_string(&context)?.into_iter());
+        }
 
         let trait_impls = self
             .traits

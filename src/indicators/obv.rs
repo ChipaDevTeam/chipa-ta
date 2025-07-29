@@ -1,13 +1,12 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
-use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
+use chipa_ta_utils::TaUtilsResult;
 
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::TaResult,
     traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,
 };

@@ -4,11 +4,11 @@ use chipa_lang_utils::{
     Lang, Pair, Rule,
     errors::{LangError, LangResult},
 };
-use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
+use chipa_ta_utils::{IndicatorTrait, Period, Reset, TaUtilsError, TaUtilsResult};
 
 use core::fmt;
 
-use chipa_ta_macros::{AutoImpl, register_trait};
+use chipa_ta_macros::AutoImpl;
 use serde::{Deserialize, Serialize};
 
 use crate::indicators::alligator::Alligator;
@@ -31,28 +31,6 @@ use crate::{
     types::OutputType,
 };
 
-register_trait! {
-    pub trait IndicatorTrait: fmt::Debug + Reset + Period + fmt::Display {
-        fn output_shape(&self) -> OutputShape;
-
-        fn name(&self) -> String {
-            self.to_string()
-        }
-    }
-}
-
-register_trait! {
-    /// Resets an indicator to the initial state.
-    pub trait Reset {
-        fn reset(&mut self);
-    }
-}
-
-register_trait! {
-    pub trait Period {
-        fn period(&self) -> usize;
-    }
-}
 
 /// A unified enum for all technical analysis indicators supported by the library.
 ///
@@ -102,6 +80,15 @@ register_trait! {
 /// ```
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, AutoImpl)]
 // #[auto_implement(path = "src/traits.rs")]
+#[auto_implement(context = "
+trait Reset {
+    fn reset(&mut self);
+}
+
+trait Period {
+    fn period(&self) -> usize;
+}
+")]
 #[auto_implement(trait = Period)]
 #[auto_implement(trait = Reset)]
 // #[auto_implement(trait = IndicatorTrait)]  // Manually implemented due to Custom variant
@@ -579,7 +566,7 @@ impl<T: Candle> Next<&T> for Indicator {
 
     fn next(&mut self, input: &T) -> TaUtilsResult<Self::Output> {
         match self {
-            Self::None(indicator) => indicator.next(input).map(OutputType::from),
+            Self::None(indicator) => indicator.next(input),
             Self::Alligator(indicator) => indicator
                 .next(input)
                 .map(|o| OutputType::Array(vec![o.0, o.1, o.2])),
@@ -610,7 +597,7 @@ impl<T: Candle> Next<&T> for Indicator {
                 .next(input)
                 .map(|o| OutputType::Array(Vec::from(o))),
             Self::WilliamsR(indicator) => indicator.next(input).map(OutputType::from),
-            Self::Custom(indicator) => indicator.next(input).map(OutputType::from),
+            Self::Custom(indicator) => indicator.next(input),
         }
     }
 }

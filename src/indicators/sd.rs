@@ -4,7 +4,7 @@ use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
 
 use std::fmt;
 
-use crate::error::{TaError, TaResult};
+use crate::error::TaResult;
 use crate::traits::{Candle, IndicatorTrait, Next, Period, Reset};
 use crate::types::OutputShape;
 use serde::{Deserialize, Serialize};

@@ -30,9 +30,6 @@ pub trait DynIndicator: fmt::Debug + Send + Sync {
     /// Process a candle
     fn next_candle(&mut self, input: &dyn Candle) -> TaUtilsResult<OutputType>;
 
-    /// Clone the indicator
-    fn clone_dyn(&self) -> Box<dyn DynIndicator>;
-
     /// Check if supports price input
     fn supports_price_input(&self) -> bool {
         true
@@ -48,15 +45,7 @@ pub trait DynIndicator: fmt::Debug + Send + Sync {
 // Implement DynIndicator for any compatible type
 impl<T> DynIndicator for T
 where
-    T: IndicatorTrait
-        + Reset
-        + Period
-        + fmt::Debug
-        + Clone
-        + Send
-        + Sync
-        + for<'a> Next<&'a dyn Candle, Output = OutputType>
-        + 'static,
+    T: IndicatorTrait + Send + Sync + for<'a> Next<&'a dyn Candle, Output = OutputType> + 'static,
 {
     fn name(&self) -> String {
         // Extract just the type name without the Display format
@@ -82,10 +71,6 @@ where
     fn next_candle(&mut self, input: &dyn Candle) -> TaUtilsResult<OutputType> {
         // Convert candle to price for processing
         self.next(input)
-    }
-
-    fn clone_dyn(&self) -> Box<dyn DynIndicator> {
-        Box::new(self.clone())
     }
 
     #[cfg(feature = "chipa_lang")]
@@ -127,7 +112,7 @@ pub struct CustomIndicator {
 /// Helper function to wrap any compatible indicator
 pub fn wrap_indicator<T>(indicator: T) -> CustomIndicator
 where
-    T: DynIndicator + 'static,
+    T: DynIndicator + Sized + 'static,
 {
     CustomIndicator::new(indicator)
 }
@@ -183,9 +168,6 @@ impl Default for CustomIndicator {
 
             fn next_candle(&mut self, input: &dyn Candle) -> TaUtilsResult<OutputType> {
                 Ok(OutputType::Single(input.price()))
-            }
-            fn clone_dyn(&self) -> Box<dyn DynIndicator> {
-                Box::new(self.clone())
             }
         }
 
@@ -334,21 +316,22 @@ mod tests {
         }
     }
 
-    impl Next<f64> for MockIndicator {
-        type Output = f64;
+    impl<C: Candle> Next<&C> for MockIndicator {
+        type Output = OutputType;
 
-        fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
-            self.value = input * 2.0; // Simple transformation
-            Ok(self.value)
+        fn next(&mut self, input: &C) -> TaUtilsResult<Self::Output> {
+            self.value = input.close() * 2.0; // Simple transformation
+            Ok(OutputType::Single(self.value))
         }
     }
 
-    impl<C: Candle> Next<&C> for MockIndicator {
-        type Output = f64;
+    // Add the required implementation for dyn Candle
+    impl Next<&dyn Candle> for MockIndicator {
+        type Output = OutputType;
 
-        fn next(&mut self, input: &C) -> TaUtilsResult<Self::Output> {
-            self.value = input.price() * 2.0;
-            Ok(self.value)
+        fn next(&mut self, input: &dyn Candle) -> TaUtilsResult<Self::Output> {
+            self.value = input.close() * 2.0; // Simple transformation
+            Ok(OutputType::Single(self.value))
         }
     }
 
@@ -360,12 +343,15 @@ mod tests {
 
     #[test]
     fn test_custom_indicator_basic_usage() {
+        use chipa_ta_utils::Bar;
+
         let mock = MockIndicator::new(0.0);
         let mut custom = CustomIndicator::new(mock);
 
         // Test that it works like the original indicator
-        let result = custom.next(5.0).unwrap();
-        assert_eq!(result, 10.0);
+        let bar = Bar::new().set_close(5.0);
+        let result = custom.next(&bar).unwrap();
+        assert_eq!(result, OutputType::Single(10.0));
 
         // Test reset
         Reset::reset(&mut custom);

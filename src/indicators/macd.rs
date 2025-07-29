@@ -1,6 +1,6 @@
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::Lang;
-use chipa_ta_utils::{TaUtilsError, TaUtilsResult};
+use chipa_ta_utils::TaUtilsResult;
 
 use core::fmt;
 

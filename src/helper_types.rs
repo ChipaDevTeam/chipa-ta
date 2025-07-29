@@ -78,7 +78,7 @@ impl Cycle {
 impl<T> Queue<T> {
     pub fn new(capacity: usize) -> TaUtilsResult<Self> {
         if capacity == 0 {
-            return Err(TaUtilsError::InvalidParameter("0".to_string()).into());
+            return Err(TaUtilsError::InvalidParameter("0".to_string()));
         }
         Ok(Self {
             period: capacity,

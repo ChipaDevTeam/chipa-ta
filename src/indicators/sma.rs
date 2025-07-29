@@ -7,7 +7,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::{TaError, TaResult},
+    error::TaResult,
     helper_types::Queue,
     traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::{OutputShape, Status},

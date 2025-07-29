@@ -1,15 +1,15 @@
-use core::fmt::{self, Debug};
+use core::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
 use chipa_ta_utils::TaUtilsError;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::{TaError, TaResult},
-    traits::{Candle, Period, Reset},
+    error::TaResult,
+    traits::{Period, Reset},
 };
 
-pub use chipa_ta_utils::{OutputError, OutputShape, OutputType};
+pub use chipa_ta_utils::{OutputError, OutputShape, OutputType, Statics};
 
 // Can you help me emprove the Queue struct? the goal is to make it like a Vec but with a fixed capacity that removes the oldest element when a new one is added beyond its capacity.
 // it also implements the Period and Reset traits, allowing it to be used in a similar way to Cycle.

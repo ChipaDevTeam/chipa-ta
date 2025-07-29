@@ -1,7 +1,6 @@
-use crate::{error::TaResult, helper_types::Bar};
-use core::{f64, fmt::Debug};
+use crate::error::TaResult;
 
-pub use crate::indicators::indicator::{IndicatorTrait, Period, Reset};
+pub use chipa_ta_utils::{IndicatorTrait, Period, Reset};
 
 use chipa_ta_utils::TaUtilsResult;
 pub use chipa_ta_utils::{Candle, Next};

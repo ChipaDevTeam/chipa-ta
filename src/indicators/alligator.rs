@@ -6,7 +6,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::{TaError, TaResult},
+    error::TaResult,
     indicators::smma::SmoothedMovingAverage,
     traits::{Candle, IndicatorTrait, Next, Period, Reset},
     types::OutputShape,

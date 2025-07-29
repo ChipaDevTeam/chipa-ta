@@ -9,7 +9,7 @@ mod tests {
     };
     use crate::traits::{Next, Period, Reset};
     use crate::types::OutputType;
-    use chipa_ta_utils::TaUtilsResult;
+    use chipa_ta_utils::{Bar, Candle, TaUtilsResult};
     use std::fmt;
 
     #[derive(Debug, Clone, PartialEq, Default)]
@@ -48,17 +48,33 @@ mod tests {
         }
     }
 
-    impl Next<f64> for TestIndicator {
-        type Output = f64;
+    impl<C: Candle> Next<&C> for TestIndicator {
+        type Output = OutputType;
 
-        fn next(&mut self, input: f64) -> TaUtilsResult<Self::Output> {
-            self.sum += input;
+        fn next(&mut self, input: &C) -> TaUtilsResult<Self::Output> {
+            self.sum += input.price();
             self.count += 1;
             if self.count > self.period {
                 // Simple average of last period values (not exact but good for testing)
-                Ok(self.sum / self.count as f64)
+                Ok(OutputType::Single(self.sum / self.count as f64))
             } else {
-                Ok(self.sum / self.count as f64)
+                Ok(OutputType::Single(self.sum / self.count as f64))
+            }
+        }
+    }
+
+    // Add the required implementation for dyn Candle
+    impl Next<&dyn Candle> for TestIndicator {
+        type Output = OutputType;
+
+        fn next(&mut self, input: &dyn Candle) -> TaUtilsResult<Self::Output> {
+            self.sum += input.price();
+            self.count += 1;
+            if self.count > self.period {
+                // Simple average of last period values (not exact but good for testing)
+                Ok(OutputType::Single(self.sum / self.count as f64))
+            } else {
+                Ok(OutputType::Single(self.sum / self.count as f64))
             }
         }
     }
@@ -83,8 +99,8 @@ mod tests {
         assert_eq!(Period::period(&indicator), 5);
 
         // Test processing data
-        let result1 = indicator.next(10.0).unwrap();
-        let result2 = indicator.next(20.0).unwrap();
+        let result1 = indicator.next(&Bar::new().set_price(10.0)).unwrap();
+        let result2 = indicator.next(&Bar::new().set_price(20.0)).unwrap();
 
         // Verify results are reasonable (OutputType should be Single variant)
         match result1 {
@@ -100,7 +116,7 @@ mod tests {
         Reset::reset(&mut indicator);
 
         // Should work again after reset
-        let result3 = indicator.next(30.0).unwrap();
+        let result3 = indicator.next(&Bar::new().set_price(30.0)).unwrap();
         match result3 {
             OutputType::Single(val) => assert!(val > 0.0),
             _ => panic!("Expected Single output type"),
@@ -119,11 +135,14 @@ mod tests {
         assert_eq!(Period::period(&indicator), 3);
 
         // Process some data
-        let _ = indicator.next(5.0).unwrap();
-        let _ = indicator.next(15.0).unwrap();
-        let result = indicator.next(25.0).unwrap();
+        let _ = indicator.next(&Bar::new().set_price(5.0)).unwrap();
+        let _ = indicator.next(&Bar::new().set_price(15.0)).unwrap();
+        let result = indicator.next(&Bar::new().set_price(25.0)).unwrap();
 
-        assert!(result > 0.0);
+        match result {
+            OutputType::Single(val) => assert!(val > 0.0),
+            _ => panic!("Expected Single output type"),
+        }
     }
 
     #[test]
@@ -136,16 +155,21 @@ mod tests {
         let mut custom_indicator = Indicator::Custom(CustomIndicator::new(test_indicator));
 
         // Both should be able to process the same data
-        let test_data = vec![10.0, 20.0, 30.0, 40.0];
+        let test_data = vec![
+            Bar::new().set_close(10.0).set_price(10.0),
+            Bar::new().set_close(20.0).set_price(20.0),
+            Bar::new().set_close(30.0).set_price(30.0),
+            Bar::new().set_close(40.0).set_price(40.0),
+        ];
 
         let mut native_results = Vec::new();
         let mut custom_results = Vec::new();
 
         for value in test_data {
-            if let Ok(result) = native_sma.next(value) {
+            if let Ok(result) = native_sma.next(&value) {
                 native_results.push(result);
             }
-            if let Ok(result) = custom_indicator.next(value) {
+            if let Ok(result) = custom_indicator.next(&value) {
                 custom_results.push(result);
             }
         }
@@ -157,10 +181,26 @@ mod tests {
         // Results don't need to be identical since our TestIndicator is simplified,
         // but both should have reasonable values
         for result in &native_results {
-            assert!(result.is_finite());
+            match result {
+                OutputType::Single(val) => assert!(val.is_finite()),
+                OutputType::Array(vals) => {
+                    for val in vals {
+                        assert!(val.is_finite());
+                    }
+                }
+                _ => {} // Other variants are acceptable for testing
+            }
         }
         for result in &custom_results {
-            assert!(result.is_finite());
+            match result {
+                OutputType::Single(val) => assert!(val.is_finite()),
+                OutputType::Array(vals) => {
+                    for val in vals {
+                        assert!(val.is_finite());
+                    }
+                }
+                _ => {} // Other variants are acceptable for testing
+            }
         }
     }
 
