@@ -3,6 +3,7 @@ use chipa_lang_utils::traits::Indexable;
 use chipa_lang_utils::{
     Lang, Pair, Rule,
     errors::{LangError, LangResult},
+    traits::NextWithContext, MarketData
 };
 use chipa_ta_utils::{IndicatorTrait, Period, Reset, TaUtilsError, TaUtilsResult};
 
@@ -758,6 +759,38 @@ impl Lang for Indicator {
             Self::Tr(indicator) => indicator.to_ct(),
             Self::WilliamsR(indicator) => indicator.to_ct(),
             Self::Custom(indicator) => indicator.to_ct(),
+        }
+    }
+}
+
+#[cfg(feature = "chipa_lang")]
+impl NextWithContext<MarketData, OutputType> for Indicator {
+    fn next_with_context(
+            &mut self,
+            input: &MarketData,
+            field: Option<&chipa_lang_utils::Index>,
+            index: Option<&chipa_lang_utils::Index>,
+        ) -> LangResult<OutputType> {
+        match self {
+            Self::None(indicator) => indicator.next_with_context(input, field, index),
+            Self::Alligator(indicator) => indicator.next_with_context(input, field, index),
+            Self::Ao(indicator) => indicator.next_with_context(input, field, index),
+            Self::Atr(indicator) => indicator.next_with_context(input, field, index),
+            Self::Bb(indicator) => indicator.next_with_context(input, field, index),
+            Self::Ema(indicator) => indicator.next_with_context(input, field, index),
+            Self::Kc(indicator) => indicator.next_with_context(input, field, index),
+            Self::Macd(indicator) => indicator.next_with_context(input, field, index),
+            Self::Mae(indicator) => indicator.next_with_context(input, field, index),
+            Self::Obv(indicator) => indicator.next_with_context(input, field, index),
+            Self::Rsi(indicator) => indicator.next_with_context(input, field, index),
+            Self::Sd(indicator) => indicator.next_with_context(input, field, index),
+            Self::Sma(indicator) => indicator.next_with_context(input, field, index),
+            Self::Smma(indicator) => indicator.next_with_context(input, field, index),
+            Self::Stoch(indicator) => indicator.next_with_context(input, field, index),
+            Self::SuperTrend(indicator) => indicator.next_with_context(input, field, index),
+            Self::Tr(indicator) => indicator.next_with_context(input, field, index),
+            Self::WilliamsR(indicator) => indicator.next_with_context(input, field, index),
+            Self::Custom(indicator) => indicator.next_with_context(input, field, index),
         }
     }
 }

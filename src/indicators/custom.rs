@@ -1,3 +1,5 @@
+#[cfg(feature = "chipa_lang")]
+use chipa_ta_utils::MarketData;
 use chipa_ta_utils::{OutputType, TaUtilsResult};
 use core::fmt;
 use std::sync::{Arc, Mutex};
@@ -5,9 +7,9 @@ use std::sync::{Arc, Mutex};
 #[cfg(feature = "chipa_lang")]
 use chipa_lang_utils::errors::LangResult;
 #[cfg(feature = "chipa_lang")]
-use chipa_lang_utils::traits::Indexable;
+use chipa_lang_utils::traits::{Indexable, NextWithContext};
 #[cfg(feature = "chipa_lang")]
-use chipa_lang_utils::{Lang, Pair, Rule};
+use chipa_lang_utils::{Index, Lang, Pair, Rule};
 use serde::{Deserialize, Serialize};
 
 use crate::traits::{Candle, IndicatorTrait, Next, Period, Reset};
@@ -40,9 +42,23 @@ pub trait DynIndicator: fmt::Debug + Send + Sync {
     fn to_ct(&self) -> String {
         format!("Custom({})", self.name())
     }
+
+    #[cfg(feature = "chipa_lang")]
+    fn next_with_context_dyn(
+        &mut self,
+        _: &MarketData,
+        _: Option<&Index>,
+        _: Option<&Index>,
+    ) -> LangResult<OutputType> {
+        Err(chipa_lang_utils::errors::LangErrorKind::NotImplemented(
+            "CustomIndicator does not support next_with_context".to_string(),
+        ).lang())
+    }
+
 }
 
 // Implement DynIndicator for any compatible type
+#[cfg(not(feature = "chipa_lang"))]
 impl<T> DynIndicator for T
 where
     T: IndicatorTrait + Send + Sync + for<'a> Next<&'a dyn Candle, Output = OutputType> + 'static,
@@ -72,11 +88,51 @@ where
         // Convert candle to price for processing
         self.next(input)
     }
+}
 
-    #[cfg(feature = "chipa_lang")]
+#[cfg(feature = "chipa_lang")]
+impl<T> DynIndicator for T
+where
+    T: IndicatorTrait + Send + Sync + for<'a> Next<&'a dyn Candle, Output = OutputType> + NextWithContext<MarketData, OutputType> + Lang + 'static,
+{
+    fn name(&self) -> String {
+        // Extract just the type name without the Display format
+        std::any::type_name::<T>()
+            .split("::")
+            .last()
+            .unwrap_or("Unknown")
+            .to_string()
+    }
+
+    fn period(&self) -> usize {
+        Period::period(self)
+    }
+
+    fn output_shape(&self) -> OutputShape {
+        IndicatorTrait::output_shape(self)
+    }
+
+    fn reset(&mut self) {
+        Reset::reset(self);
+    }
+
+    fn next_candle(&mut self, input: &dyn Candle) -> TaUtilsResult<OutputType> {
+        // Convert candle to price for processing
+        self.next(input)
+    }
+
     fn to_ct(&self) -> String {
         // Default implementation - specific types can override in their Lang impl
-        format!("Custom({})", self.name())
+        Lang::to_ct(self)
+    }
+
+    fn next_with_context_dyn(
+        &mut self,
+        input: &MarketData,
+        field: Option<&Index>,
+        index: Option<&Index>,
+    ) -> LangResult<OutputType> {
+        self.next_with_context(input, field, index)
     }
 }
 
@@ -105,23 +161,34 @@ where
 /// ```
 #[derive(Debug, Clone)]
 pub struct CustomIndicator {
-    inner: Arc<Mutex<Box<dyn DynIndicator>>>,
+    inner: Arc<Mutex<Box<dyn DynIndicator + Send + Sync>>>,
     cached_name: String, // Cache for performance
 }
 
 /// Helper function to wrap any compatible indicator
 pub fn wrap_indicator<T>(indicator: T) -> CustomIndicator
 where
-    T: DynIndicator + Sized + 'static,
+    T: DynIndicator + Sized + Send + Sync + 'static,
 {
     CustomIndicator::new(indicator)
 }
 
+#[cfg(feature = "chipa_lang")]
+impl NextWithContext<MarketData, OutputType> for CustomIndicator {
+    fn next_with_context(
+        &mut self,
+        input: &MarketData,
+        index: Option<&Index>,
+        field: Option<&Index>,
+    ) -> LangResult<OutputType> {
+        self.inner.lock().unwrap().next_with_context_dyn(input, field, index)
+    }
+}
 impl CustomIndicator {
     /// Create a new CustomIndicator wrapping the given indicator
     pub fn new<T>(indicator: T) -> Self
     where
-        T: DynIndicator + 'static,
+        T: DynIndicator + Sync + Send + 'static,
     {
         let name = indicator.name();
         Self {

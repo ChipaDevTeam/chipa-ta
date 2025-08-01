@@ -14,6 +14,14 @@ pub mod helper_types;
 #[cfg(not(feature = "js"))]
 pub use indicators::indicator::Indicator;
 
+pub mod reimports {
+    pub use chipa_ta_utils::{
+        IndicatorTrait, MarketData, Next, OutputShape, OutputType, Period, Reset, TaUtilsError, TaUtilsResult, Candle
+    };
+}
+
+pub use reimports::*;
+
 #[cfg(feature = "js")]
 pub use indicators::js::{Candle, Indicator};
 

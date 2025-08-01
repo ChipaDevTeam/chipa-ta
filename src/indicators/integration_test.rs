@@ -4,9 +4,10 @@
 mod tests {
     use crate::indicators::{
         custom::{CustomIndicator, wrap_indicator},
-        indicator::{Indicator, IndicatorTrait},
+        indicator::Indicator,
         sma::SimpleMovingAverage,
     };
+    use chipa_ta_utils::IndicatorTrait;
     use crate::traits::{Next, Period, Reset};
     use crate::types::OutputType;
     use chipa_ta_utils::{Bar, Candle, TaUtilsResult};
